@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>그릴마당 마작 레이팅</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- 상단 헤더: 왼쪽 제목 / 오른쪽 뷰 전환 -->
+  <div class="top-bar">
+    <h1>그릴마당 마작 레이팅</h1>
+    <div class="view-switch">
+      <button class="view-switch-btn active" data-view="personal">개인 레이팅</button>
+      <button class="view-switch-btn" data-view="team">팀 레이팅(do not touch)</button>
+      <button class="view-switch-btn" data-view="team-manage">팀 관리(do not touch)</button>
+    </div>
+  </div>
+
+  <!-- ================= 개인 레이팅 화면 ================= -->
+  <div id="personal-view" class="view">
+    <div class="main-layout">
+      <!-- 왼쪽: 입력 + 게임 데이터 + 규칙 -->
+      <div class="left-panel">
+        <!-- 입력 폼 -->
+        <section class="form-panel">
+          <h2>대국 기록 입력</h2>
+          <form id="game-form" method="post" autocomplete="off">
+            <div class="row">
+              <label>P1(동)</label>
+              <input name="player1_name" placeholder="플레이어 1 이름" required>
+              <input name="player1_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>P2(남)</label>
+              <input name="player2_name" placeholder="플레이어 2 이름" required>
+              <input name="player2_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>P3(서)</label>
+              <input name="player3_name" placeholder="플레이어 3 이름" required>
+              <input name="player3_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>P4(북)</label>
+              <input name="player4_name" placeholder="플레이어 4 이름" required>
+              <input name="player4_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <button type="submit">저장</button>
+          </form>
+        </section>
+
+        <!-- 대국 기록 + CSV -->
+        <section class="games-panel">
+          <div class="games-header">
+            <h2>대국 기록</h2>
+            <div class="games-header-right">
+              <a href="/export" class="export-link">CSV 내보내기</a>
+              <a href="/import" class="import-link">CSV 업로드</a>
+            </div>
+          </div>
+
+          <table class="games-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>시간</th>
+                <th>P1</th>
+                <th>P2</th>
+                <th>P3</th>
+                <th>P4</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="games-tbody">
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 룰 안내 -->
+        <section class="rule-panel">
+          <h2>레이팅전 규칙</h2>
+          <ul>
+            <li>4인 반장전, 서입 O, 북입 X</li>
+            <li>25,000점 시작, 30,000점 반환</li>
+            <li>토비 시 게임 종료</li>
+            <li>우마: 1등 +30 / 2등 +10 / 3등 −10 / 4등 −30</li>
+            <li>오카: 1등 +20</li>
+            <li>발성미스: 화료 불가</li>
+            <li>촌보: 3000 all</li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- 오른쪽: 개인 전체 등수 -->
+      <div class="right-panel">
+        <section class="ranking-panel">
+          <div class="ranking-header">
+            <h2>전체 등수</h2>
+            <div class="rank-legend">
+              <span class="legend-color legend1"></span><span class="legend-text">1등</span>
+              <span class="legend-color legend2"></span><span class="legend-text">2등</span>
+              <span class="legend-color legend3"></span><span class="legend-text">3등</span>
+              <span class="legend-color legend4"></span><span class="legend-text">4등</span>
+            </div>
+          </div>
+
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>이름</th>
+                <th>게임 수</th>
+                <th>총 pt</th>
+                <th>연대율</th>
+                <th>등수 분포</th>
+              </tr>
+            </thead>
+            <tbody id="ranking-tbody">
+              <tr>
+                <td colspan="6" class="ranking-placeholder">통계 없음</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 팀 레이팅 화면 ================= -->
+  <div id="team-view" class="view" style="display:none;">
+    <div class="main-layout">
+      <!-- 왼쪽: 팀 목록 / 팀전 입력 / 팀전 기록 / 규칙 -->
+      <div class="left-panel">
+        <!-- 팀 목록 / 팀원 (보기용) -->
+        <section class="team-panel">
+          <h2>팀 목록 / 팀원</h2>
+          <div id="team-overview" class="team-overview">
+            <!-- JS로 팀 + 팀원 카드들 생성 -->
+          </div>
+        </section>
+
+        <!-- 팀전 기록 입력 + 팀전 CSV -->
+        <section class="team-panel">
+          <div class="games-header">
+            <h2>팀전 기록 입력</h2>
+            <div class="games-header-right">
+              <a href="/team_export" class="export-link">팀전 CSV 내보내기</a>
+              <a href="/team_import" class="import-link">팀전 CSV 업로드</a>
+            </div>
+          </div>
+
+          <form id="team-game-form" autocomplete="off">
+            <div class="row">
+              <label>T1(동)</label>
+              <input name="g1_player" placeholder="이름" required>
+              <input name="g1_team" placeholder="팀 이름" required>
+              <input name="g1_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>T1(남)</label>
+              <input name="g2_player" placeholder="이름" required>
+              <input name="g2_team" placeholder="팀 이름" required>
+              <input name="g2_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>T3(서)</label>
+              <input name="g3_player" placeholder="이름" required>
+              <input name="g3_team" placeholder="팀 이름" required>
+              <input name="g3_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>T4(북)</label>
+              <input name="g4_player" placeholder="이름" required>
+              <input name="g4_team" placeholder="팀 이름" required>
+              <input name="g4_score" type="number" step="100" placeholder="점수" required>
+            </div>
+            <button type="submit">팀전 기록 저장</button>
+          </form>
+        </section>
+
+        <!-- 팀전 대국 기록 -->
+        <section class="team-panel">
+          <h2>팀전 대국 기록</h2>
+          <table class="games-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>시간</th>
+                <th>T1</th>
+                <th>T2</th>
+                <th>T3</th>
+                <th>T4</th>
+              </tr>
+            </thead>
+            <tbody id="team-games-tbody">
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 팀전 규칙 -->
+        <section class="rule-panel team-rule-panel">
+          <h2>팀전 규칙</h2>
+          <ul>
+            <li>M리그 형식 참고 (예: 4팀 리그전 등)</li>
+            <li>팀 pt = 소속 선수 pt 합산 (또는 평균) 예정</li>
+            <li>팀전 데이터는 개인전과 별도로 관리</li>
+            <li>추가로 정해지는 룰을 여기 적으면 됩니다</li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- 오른쪽: 팀 순위 / 등수 그래프 -->
+      <div class="right-panel">
+        <section class="ranking-panel">
+          <div class="ranking-header">
+            <h2>팀 순위</h2>
+            <div class="rank-legend">
+              <span class="legend-color legend1"></span><span class="legend-text">1등</span>
+              <span class="legend-color legend2"></span><span class="legend-text">2등</span>
+              <span class="legend-color legend3"></span><span class="legend-text">3등</span>
+              <span class="legend-color legend4"></span><span class="legend-text">4등</span>
+            </div>
+          </div>
+
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>팀 이름</th>
+                <th>게임 수</th>
+                <th>총 pt</th>
+                <th>연대율</th>
+                <th>등수 분포</th>
+              </tr>
+            </thead>
+            <tbody id="team-ranking-tbody">
+              <tr>
+                <td colspan="6" class="ranking-placeholder">
+                  아직 팀 데이터가 없습니다.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 팀 관리 화면 ================= -->
+  <div id="team-manage-view" class="view" style="display:none;">
+    <div class="main-layout">
+      <div class="left-panel">
+        <!-- 팀 생성 / 팀원 추가 -->
+        <section class="team-panel">
+          <h2>팀 생성 / 팀원 추가</h2>
+          <div class="team-forms">
+            <div class="team-form-block">
+              <h3>팀 생성</h3>
+              <form id="team-create-form" autocomplete="off">
+                <input type="text" name="team_name" placeholder="팀 이름" required>
+                <button type="submit">팀 생성</button>
+              </form>
+            </div>
+
+            <div class="team-form-block">
+              <h3>팀에 사람 추가</h3>
+              <form id="team-add-member-form" autocomplete="off">
+                <input type="text" name="player_name" placeholder="플레이어 이름" required>
+                <input type="text" name="team_name" placeholder="팀 이름" required>
+                <button type="submit">추가</button>
+              </form>
+              <p class="hint-text">
+                * 팀 이름은 위에서 생성한 이름과 동일하게 입력해야 합니다.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 팀 목록 관리 (삭제) -->
+        <section class="team-panel">
+          <h2>팀 목록 관리</h2>
+          <table class="manage-table" id="manage-team-table">
+            <thead>
+              <tr>
+                <th>팀 이름</th>
+                <th>멤버 수</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="3" class="ranking-placeholder">팀이 없습니다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 팀원 관리 (팀에서 제거) -->
+        <section class="team-panel">
+          <h2>팀원 관리</h2>
+          <table class="manage-table" id="manage-members-table">
+            <thead>
+              <tr>
+                <th>팀 이름</th>
+                <th>플레이어</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="3" class="ranking-placeholder">팀원이 없습니다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <div class="right-panel">
+        <section class="rule-panel team-rule-panel">
+          <h2>팀 관리 안내</h2>
+          <ul>
+            <li>팀 삭제 시, 해당 팀의 팀원 매핑도 함께 삭제됩니다.</li>
+            <li>팀원 제거는 팀은 유지한 채 특정 플레이어만 분리합니다.</li>
+            <li>팀/팀원 삭제 후에는 팀 레이팅 화면의 팀/팀전 통계도 함께 갱신됩니다.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>CSV 업로드 - 그릴마당 마작 레이팅</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    p {
+      font-size: 14px;
+      margin: 4px 0;
+    }
+    .upload-box {
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .upload-box form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    .upload-box button {
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+    }
+    .upload-box button:hover {
+      background: #eee;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 13px;
+      text-decoration: none;
+      color: #0070c9;
+    }
+  </style>
+</head>
+<body>
+  <h1>CSV 업로드</h1>
+  <p>이 화면은 <strong>내보내기한 CSV</strong>를 다시 불러오거나, 같은 형식의 CSV를 업로드할 때 사용합니다.</p>
+  <p>업로드하면 CSV에 있는 모든 판이 <strong>현재 전적에 추가</strong>됩니다.</p>
+
+  <div class="upload-box">
+    <form action="/import" method="post" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".csv">
+      <button type="submit">업로드 실행</button>
+    </form>
+  </div>
+
+  <a href="/" class="back-link">← 메인으로 돌아가기</a>
+</body>
+</html>
