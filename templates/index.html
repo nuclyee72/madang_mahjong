@@ -18,8 +18,9 @@
   </div>
 
   <!-- ================= 개인 레이팅 화면 ================= -->
+  <!-- ⬇⬇ 여기 main-layout에 equal-layout 클래스 추가됨 -->
   <div id="personal-view" class="view">
-    <div class="main-layout">
+    <div class="main-layout equal-layout">
       <!-- 왼쪽: 입력 + 게임 데이터 + 규칙 -->
       <div class="left-panel">
         <!-- 입력 폼 -->
@@ -29,22 +30,34 @@
             <div class="row">
               <label>P1(동)</label>
               <input name="player1_name" placeholder="플레이어 1 이름" required>
-              <input name="player1_score" type="number" step="100" placeholder="점수" required>
+              <input name="player1_score"
+                    type="text"
+                    placeholder="점수"
+                    required>
             </div>
             <div class="row">
               <label>P2(남)</label>
               <input name="player2_name" placeholder="플레이어 2 이름" required>
-              <input name="player2_score" type="number" step="100" placeholder="점수" required>
+              <input name="player2_score"
+                    type="text"
+                    placeholder="점수"
+                    required>
             </div>
             <div class="row">
               <label>P3(서)</label>
               <input name="player3_name" placeholder="플레이어 3 이름" required>
-              <input name="player3_score" type="number" step="100" placeholder="점수" required>
+              <input name="player3_score"
+                    type="text"
+                    placeholder="점수"
+                    required>
             </div>
             <div class="row">
               <label>P4(북)</label>
               <input name="player4_name" placeholder="플레이어 4 이름" required>
-              <input name="player4_score" type="number" step="100" placeholder="점수" required>
+              <input name="player4_score"
+                    type="text"
+                    placeholder="점수"
+                    required>
             </div>
             <button type="submit">저장</button>
           </form>
@@ -152,28 +165,48 @@
 
           <form id="team-game-form" autocomplete="off">
             <div class="row">
-              <label>T1(동)</label>
+              <label>P1(동)</label>
               <input name="g1_player" placeholder="이름" required>
               <input name="g1_team" placeholder="팀 이름" required>
-              <input name="g1_score" type="number" step="100" placeholder="점수" required>
+              <input name="g1_score"
+                    type="text"
+                    inputmode="decimal"
+                    pattern="-?[0-9]*"
+                    placeholder="점수"
+                    required>
             </div>
             <div class="row">
-              <label>T1(남)</label>
+              <label>P2(남)</label>
               <input name="g2_player" placeholder="이름" required>
               <input name="g2_team" placeholder="팀 이름" required>
-              <input name="g2_score" type="number" step="100" placeholder="점수" required>
+              <input name="g2_score"
+                    type="text"
+                    inputmode="decimal"
+                    pattern="-?[0-9]*"
+                    placeholder="점수"
+                    required>
             </div>
             <div class="row">
-              <label>T3(서)</label>
+              <label>P3(서)</label>
               <input name="g3_player" placeholder="이름" required>
               <input name="g3_team" placeholder="팀 이름" required>
-              <input name="g3_score" type="number" step="100" placeholder="점수" required>
+              <input name="g3_score"
+                    type="text"
+                    inputmode="decimal"
+                    pattern="-?[0-9]*"
+                    placeholder="점수"
+                    required>
             </div>
             <div class="row">
-              <label>T4(북)</label>
+              <label>P4(북)</label>
               <input name="g4_player" placeholder="이름" required>
               <input name="g4_team" placeholder="팀 이름" required>
-              <input name="g4_score" type="number" step="100" placeholder="점수" required>
+              <input name="g4_score"
+                    type="text"
+                    inputmode="decimal"
+                    pattern="-?[0-9]*"
+                    placeholder="점수"
+                    required>
             </div>
             <button type="submit">팀전 기록 저장</button>
           </form>
@@ -191,6 +224,7 @@
                 <th>T2</th>
                 <th>T3</th>
                 <th>T4</th>
+                <th></th> <!-- 삭제 버튼용 열 추가 -->
               </tr>
             </thead>
             <tbody id="team-games-tbody">

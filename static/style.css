@@ -774,3 +774,8 @@ td.winner {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* 개인 레이팅 화면: 좌우 1:1 */
+.main-layout.equal-layout {
+  grid-template-columns: 1fr 1fr;
+}
