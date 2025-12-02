@@ -1,3 +1,14 @@
+html {
+  zoom: 0.9;  /* 1.0 = 원래 크기, 0.9 = 90% 크기 */
+}
+
+html {
+  /* 항상 세로 스크롤바 자리 확보해서 레이아웃이 좌우로 안 튐 */
+  overflow-y: scroll;
+  /* 크롬/엣지 최신이면 이거도 같이 쓰면 더 안정적 */
+  scrollbar-gutter: stable;
+}
+
 body {
   max-width: 1100px;
   margin: 20px auto;
@@ -20,7 +31,7 @@ h1 {
 
 /* 왼쪽: 입력 + 게임데이터 */
 .left-panel {
-  flex: 1.2;   /* 오른쪽보다 조금 넓게 */
+  flex: 1.2;
 }
 
 /* 오른쪽: 전체 등수 */
@@ -31,7 +42,7 @@ h1 {
 /* 입력 폼 안 레이아웃: [라벨 | 이름 | 점수] */
 #game-form .row {
   display: grid;
-  grid-template-columns: 40px 1fr 140px; /* 라벨 / 이름 / 점수 */
+  grid-template-columns: 40px 1fr 140px;
   gap: 8px;
   margin-bottom: 8px;
 }
@@ -69,7 +80,8 @@ table {
   font-size: 13px;
 }
 
-th, td {
+th,
+td {
   border: 1px solid #ddd;
   padding: 6px 8px;
   text-align: center;
@@ -133,7 +145,7 @@ td.winner {
   width: 50px;
 }
 
-.ranking-table th:nth-child(5)
+.ranking-table th:nth-child(5),
 .ranking-table td:nth-child(5) {
   width: 50px;
 }
@@ -157,13 +169,12 @@ td.winner {
 /* 위에 텍스트 라인 */
 .rank-dist-labels {
   display: flex;
-  flex-wrap: nowrap;      /* 줄 바꿈 금지 */
-  gap: 6px;               /* 라벨 사이 간격 */
+  flex-wrap: nowrap;
+  gap: 6px;
   justify-content: center;
   font-size: 11px;
-  white-space: nowrap;    /* 한 줄에 쭉 유지 */
+  white-space: nowrap;
 }
-
 
 /* 각 텍스트에 색 힌트 */
 .rank-label {
@@ -172,10 +183,18 @@ td.winner {
   background-color: rgba(255, 255, 255, 0.8);
 }
 
-.rank-label1 { border-left: 4px solid #4dd2a6; }
-.rank-label2 { border-left: 4px solid #4f9cff; }
-.rank-label3 { border-left: 4px solid #d9d9d9; }
-.rank-label4 { border-left: 4px solid #ff6b81; }
+.rank-label1 {
+  border-left: 4px solid #4dd2a6;
+}
+.rank-label2 {
+  border-left: 4px solid #4f9cff;
+}
+.rank-label3 {
+  border-left: 4px solid #d9d9d9;
+}
+.rank-label4 {
+  border-left: 4px solid #ff6b81;
+}
 
 /* 1·2·3·4등 분포 가로 막대 */
 .rank-dist-bar {
@@ -202,10 +221,18 @@ td.winner {
   white-space: nowrap;
 }
 
-.rank-seg1 { background-color: #4dd2a6; }   /* 1등: 파랑 */
-.rank-seg2 { background-color: #4f9cff; }   /* 2등: 초록 */
-.rank-seg3 { background-color: #d9d9d9; }   /* 3등: 노랑 */
-.rank-seg4 { background-color: #ff6b81; }   /* 4등: 빨강 */
+.rank-seg1 {
+  background-color: #4dd2a6;
+}
+.rank-seg2 {
+  background-color: #4f9cff;
+}
+.rank-seg3 {
+  background-color: #d9d9d9;
+}
+.rank-seg4 {
+  background-color: #ff6b81;
+}
 
 /* 전체 등수 제목 + 색 범례 */
 .ranking-header {
@@ -235,11 +262,18 @@ td.winner {
   border-radius: 999px;
 }
 
-/* rank-seg 색이랑 맞춰줌 */
-.legend1 { background-color: #4dd2a6; }  /* 1등 */
-.legend2 { background-color: #4f9cff; }  /* 2등 */
-.legend3 { background-color: #d9d9d9; }  /* 3등 */
-.legend4 { background-color: #ff6b81; }  /* 4등 */
+.legend1 {
+  background-color: #4dd2a6;
+}
+.legend2 {
+  background-color: #4f9cff;
+}
+.legend3 {
+  background-color: #d9d9d9;
+}
+.legend4 {
+  background-color: #ff6b81;
+}
 
 .legend-text {
   margin-right: 4px;
@@ -248,7 +282,7 @@ td.winner {
 /* 왼쪽/오른쪽 제목을 같은 줄로 맞추기 */
 .form-panel h2,
 .ranking-header h2 {
-  margin: 0 0 8px 0;   /* 위쪽 여백 0으로 통일 */
+  margin: 0 0 8px 0;
   font-size: 18px;
 }
 
@@ -285,49 +319,7 @@ td.winner {
   background-color: #eee;
 }
 
-/* 업로드 폼 */
-.import-form {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.import-form input[type="file"] {
-  font-size: 11px;
-}
-
-.import-form button {
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background-color: #fafafa;
-  cursor: pointer;
-}
-
-.import-form button:hover {
-  background-color: #eee;
-}
-
-.games-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.games-header h2 {
-  margin: 0;
-}
-
-.games-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.export-link,
+/* 업로드 링크 */
 .import-link {
   font-size: 12px;
   padding: 4px 8px;
@@ -338,7 +330,6 @@ td.winner {
   background-color: #fafafa;
 }
 
-.export-link:hover,
 .import-link:hover {
   background-color: #eee;
 }
@@ -356,7 +347,7 @@ td.winner {
   font-size: 22px;
 }
 
-/* 개인 / 팀 전환 버튼 */
+/* 탭 전환 버튼 */
 .view-switch {
   display: flex;
   gap: 8px;
@@ -378,219 +369,10 @@ td.winner {
   font-weight: 600;
 }
 
-/* 팀 화면용 공통 박스 */
-.team-panel {
-  margin-top: 16px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background-color: #fafafa;
-}
-
-.team-panel h2 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-}
-
-.team-panel h3 {
-  margin: 8px 0 4px 0;
-  font-size: 14px;
-}
-
-/* 팀 목록 / 팀원 목록 */
-.team-lists {
-  display: flex;
-  gap: 12px;
-}
-
-.team-list-box,
-.team-members-box {
-  flex: 1;
-}
-
-.simple-list {
-  list-style: none;
-  margin: 4px 0 0 0;
-  padding: 0;
-  font-size: 13px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  max-height: 180px;
-  overflow-y: auto;
-  background: #fff;
-}
-
-.simple-list li {
-  padding: 4px 8px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-}
-
-.simple-list li:last-child {
-  border-bottom: none;
-}
-
-.simple-list li.active {
-  background-color: #e4ebff;
-  font-weight: 600;
-}
-
-/* 팀 관리 폼 */
-.team-forms {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.team-form-block form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.team-form-block input[type="text"] {
-  flex: 1;
-  font-size: 12px;
-  padding: 3px 6px;
-}
-
-.team-form-block button {
-  font-size: 12px;
-  padding: 4px 8px;
-}
-
-/* 팀전 기록 입력 폼 재사용 */
-.team-panel .row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.team-panel .row label {
-  width: 32px;
-  font-size: 12px;
-}
-
-.team-panel .row input {
-  font-size: 12px;
-  padding: 3px 6px;
-}
-
-.team-panel button[type="submit"] {
-  margin-top: 6px;
-  font-size: 12px;
-  padding: 4px 10px;
-}
-
-.hint-text {
-  font-size: 11px;
-  color: #666;
-}
-
-/* 팀전 규칙은 기존 rule-panel 스타일 재사용 */
-.team-rule-panel {
-  margin-top: 16px;
-}
-
-/* 개인전 왼쪽 전체를 카드처럼 감싸는 박스 */
-.personal-left-card {
-  background-color: #fafafa;
-  border-radius: 16px;
-  border: 1px solid #ddd;
-  padding: 12px 14px 14px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 카드 안에서는 위쪽 마진 좀 줄이기 */
-.personal-left-card .form-panel,
-.personal-left-card .games-panel,
-.personal-left-card .rule-panel {
-  margin-top: 0;
-}
-
-/* 개인전 왼쪽 섹션들을 카드처럼 */
-.form-panel,
-.games-panel,
-.rule-panel {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  background-color: #fafafa;
-}
-
-/* 팀 패널이랑 비슷하게 폰트 작게 */
-.form-panel h2,
-.games-panel h2,
-.rule-panel h2 {
-  margin: 0 0 6px 0;
-  font-size: 15px;
-}
-
-/* 입력 폼 내부 글씨 크기 다운 */
-.form-panel .row label {
-  width: 50px;
-  font-size: 12px;
-}
-
-.form-panel .row input {
-  font-size: 12px;
-  padding: 3px 6px;
-}
-
-.form-panel button[type="submit"] {
-  margin-top: 6px;
-  font-size: 12px;
-  padding: 4px 10px;
-}
-
-/* 대국 기록 테이블도 살짝 작게 */
-.games-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.games-table th,
-.games-table td {
-  border: 1px solid #ddd;
-  padding: 3px 4px;
-}
-
-/* 규칙 리스트 글씨도 줄이기 */
-.rule-panel ul {
-  margin: 4px 0 0 16px;
-  padding: 0;
-  font-size: 12px;
-}
-
-/* 공통 레이아웃 대충 가정: 이미 있을 수도 있음 */
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.view-switch-btn {
-  font-size: 13px;
-  padding: 4px 8px;
-  margin-left: 4px;
-}
-.view-switch-btn.active {
-  background-color: #4a6cff;
-  color: white;
-}
-
-/* 개인전/팀 공통 박스 */
+/* 개인전 왼쪽 섹션들 카드화 */
 .form-panel,
 .games-panel,
 .rule-panel,
-.team-panel,
 .ranking-panel {
   margin-top: 10px;
   padding: 10px 12px;
@@ -602,35 +384,30 @@ td.winner {
 .form-panel h2,
 .games-panel h2,
 .rule-panel h2,
-.team-panel h2,
 .ranking-panel h2 {
   margin: 0 0 6px 0;
   font-size: 15px;
 }
 
 /* 입력 폼 줄 */
-.form-panel .row,
-.team-panel .row {
+.form-panel .row {
   display: flex;
   gap: 6px;
   align-items: center;
   margin-bottom: 4px;
 }
 
-.form-panel .row label,
-.team-panel .row label {
+.form-panel .row label {
   width: 50px;
   font-size: 12px;
 }
 
-.form-panel .row input,
-.team-panel .row input {
+.form-panel .row input {
   font-size: 12px;
   padding: 3px 6px;
 }
 
-.form-panel button,
-.team-panel button {
+.form-panel button {
   font-size: 12px;
   padding: 4px 10px;
 }
@@ -641,98 +418,26 @@ td.winner {
   border-collapse: collapse;
   font-size: 12px;
 }
+
 .games-table th,
 .games-table td {
   border: 1px solid #ddd;
   padding: 3px 4px;
 }
+
+/* 규칙 리스트 */
+.rule-panel ul {
+  margin: 4px 0 0 16px;
+  padding: 0;
+  font-size: 12px;
+}
+
+/* 승리 칸 */
 .winner-cell {
   background-color: #e5f0ff;
 }
 
-/* 팀 목록 한 번에 보기 */
-.team-overview {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.team-overview-item {
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  padding: 6px 8px;
-  background-color: #fff;
-  font-size: 12px;
-}
-.team-overview-header {
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-.team-overview-members {
-  color: #444;
-}
-
-/* 순위 테이블 / 관리 테이블 */
-.ranking-table,
-.manage-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.ranking-table th,
-.ranking-table td,
-.manage-table th,
-.manage-table td {
-  border: 1px solid #ddd;
-  padding: 3px 4px;
-}
-.ranking-placeholder {
-  text-align: center;
-  color: #777;
-  font-size: 12px;
-}
-
-/* 등수 분포 그래프 */
-.rank-dist-bar {
-  display: flex;
-  width: 100%;
-  height: 16px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.rank-seg {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #fff;
-}
-
-.rank-seg span {
-  position: relative;
-  z-index: 1;
-}
-
-/* 범례 */
-.rank-legend {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-}
-.legend-color {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-/* 힌트 텍스트 */
-.hint-text {
-  font-size: 11px;
-  color: #666;
-}
-
-/* 오른쪽(개인/팀) 순위 박스는 카드 배경 제거 */
+/* 오른쪽(개인) 순위 박스는 카드 배경 제거 */
 .right-panel .ranking-panel {
   background-color: transparent;
   border: none;
@@ -752,30 +457,299 @@ td.winner {
   overflow: hidden;
 }
 
-/* 입력 칸(이름 / 점수) 높이 통일 */
-.form-panel .row input,
-.team-panel .row input {
-  height: 24px;        /* 둘 다 같은 세로 높이 */
-  line-height: 24px;   /* 텍스트 세로 가운데 정렬 느낌 */
+/* 입력 칸 높이 통일 */
+.form-panel .row input {
+  height: 24px;
+  line-height: 24px;
   padding: 0 8px;
   box-sizing: border-box;
 }
 
-/* number 입력창 스피너 때문에 높이 깨지는 거 방지용 (크롬 계열) */
-.form-panel .row input[type="number"],
-.team-panel .row input[type="number"] {
+/* number 스피너 제거 */
+.form-panel .row input[type="number"] {
   -moz-appearance: textfield;
 }
 
 .form-panel .row input[type="number"]::-webkit-outer-spin-button,
-.form-panel .row input[type="number"]::-webkit-inner-spin-button,
-.team-panel .row input[type="number"]::-webkit-outer-spin-button,
-.team-panel .row input[type="number"]::-webkit-inner-spin-button {
+.form-panel .row input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* 개인 레이팅 화면: 좌우 1:1 */
+/* 개인 레이팅 화면: 좌우 1:1 느낌 */
 .main-layout.equal-layout {
   grid-template-columns: 1fr 1fr;
+}
+
+/* 힌트 텍스트 */
+.hint-text {
+  font-size: 11px;
+  color: #666;
+}
+
+/* ================= 개인별 통계 / 관리자 공통 패널 ================= */
+
+.stats-panel,
+.admin-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background-color: #fafafa;
+}
+
+.stats-panel h2,
+.stats-panel h3,
+.admin-panel h2,
+.admin-panel h3 {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+}
+
+/* 통계: 플레이어 선택 */
+.stats-player-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.stats-player-select label {
+  font-size: 13px;
+}
+
+.stats-player-select select {
+  flex: 1;
+  font-size: 13px;
+  padding: 4px 6px;
+}
+
+/* 통계 요약 */
+.stats-summary-main {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.stats-label {
+  display: inline-block;
+  min-width: 60px;
+  color: #666;
+}
+
+.stats-value {
+  font-weight: 600;
+}
+
+/* 통계: 등수 분포 */
+.stats-rank-dist {
+  margin-top: 4px;
+}
+
+/* 최근 등수 그래프 */
+.recent-rank-graph {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.recent-rank-item {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+}
+
+.recent-rank-item.rank-1 {
+  background-color: #4dd2a6;
+}
+.recent-rank-item.rank-2 {
+  background-color: #4f9cff;
+}
+.recent-rank-item.rank-3 {
+  background-color: #d9d9d9;
+  color: #333;
+}
+.recent-rank-item.rank-4 {
+  background-color: #ff6b81;
+}
+
+/* 같이 한 플레이어 테이블 */
+.stats-co-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.stats-co-table th,
+.stats-co-table td {
+  border: 1px solid #ddd;
+  padding: 3px 4px;
+}
+
+/* 관리자: 폼 행 */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.form-row label {
+  width: 70px;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+  font-size: 13px;
+  padding: 3px 6px;
+}
+
+.admin-panel button {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+/* 관리자: 플레이어 선택 */
+.admin-player-select {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.admin-player-select input {
+  flex: 1;
+  font-size: 13px;
+  padding: 3px 6px;
+}
+
+.admin-player-select button {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+/* 뱃지 리스트 / 칩 */
+.badge-list-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.badge-chip {
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+}
+
+.badge-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-main {
+  font-weight: 600;
+}
+
+.badge-code {
+  display: inline-block;
+  margin-right: 4px;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+}
+
+.badge-desc {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #555;
+}
+
+/* 뱃지 등급별 색 */
+.badge-grade-플래티넘 {
+  border-color: #00c2ff;
+  background: #e6f9ff;
+}
+.badge-grade-골드 {
+  border-color: #f0b400;
+  background: #fff7e0;
+}
+.badge-grade-실버 {
+  border-color: #a0a0a0;
+  background: #f4f4f4;
+}
+.badge-grade-브론즈 {
+  border-color: #c07a3a;
+  background: #fbeee2;
+}
+.badge-grade-기타 {
+  border-color: #bbb;
+  background: #f8f8f8;
+}
+
+/* 뱃지 칩 내 삭제 버튼 */
+.badge-chip button {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+/* 뱃지 테이블 */
+.badge-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.badge-table th,
+.badge-table td {
+  border: 1px solid #ddd;
+  padding: 3px 4px;
+}
+
+/* 전체 등수 표 셀 간격 줄이기 */
+.ranking-table th,
+.ranking-table td {
+  padding: 2px 4px;   /* 위아래 2px, 좌우 4px (원래는 6px 8px) */
+}
+
+/* 총 등수 통계 아래 1~4등 요약 */
+.stats-rank-info {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 11px;
+  color: #555;
+}
+
+.stats-rank-info-item {
+  min-width: 80px;
+}
+
+.my-player-cell {
+  background-color: #fff7d6; /* 내가 앉은 자리 살짝 강조 */
+}
+
+.rank-dist-detail {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #444;
+}
+
+.rank-dist-detail-row {
+  line-height: 1.4;
 }
