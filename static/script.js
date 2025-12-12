@@ -7,6 +7,11 @@ let ALL_GAMES = [];
 let PLAYER_SUMMARY = [];
 let ALL_BADGES = [];
 
+// 아카이브용 캐시
+let ARCHIVES = [];
+let CURRENT_ARCHIVE_GAMES = [];
+let ARCHIVE_PLAYER_SUMMARY = [];
+
 // ===== 포인트 계산 =====
 function calcPts(scores) {
   const order = scores
@@ -111,14 +116,18 @@ document.addEventListener("DOMContentLoaded", () => {
   setupViewSwitch();
   setupPersonalForm();
   setupStatsView();
+  setupArchiveView();
   setupAdminView();
   loadGamesAndRanking();
+  reloadBadgeList();
+  reloadArchiveList();
 });
 
 // ======================= 상단 탭 전환 =======================
 function setupViewSwitch() {
   const personalView = document.getElementById("personal-view");
   const statsView = document.getElementById("stats-view");
+  const archiveView = document.getElementById("archive-view");
   const adminView = document.getElementById("admin-view");
   const buttons = document.querySelectorAll(".view-switch-btn");
 
@@ -132,10 +141,17 @@ function setupViewSwitch() {
         updateStatsPlayerSelect();
       }
     }
+    if (archiveView) {
+      archiveView.style.display = view === "archive" ? "block" : "none";
+      if (view === "archive") {
+        reloadArchiveList();
+      }
+    }
     if (adminView) {
       adminView.style.display = view === "admin" ? "block" : "none";
       if (view === "admin") {
         reloadBadgeList();
+        reloadArchiveList();
       }
     }
   }
@@ -167,19 +183,16 @@ function setupPersonalForm() {
     const p3_name = (fd.get("player3_name") || "").toString().trim();
     const p4_name = (fd.get("player4_name") || "").toString().trim();
 
-    // 점수는 text라서 직접 정수로 변환
     const s1 = parseInt(fd.get("player1_score"), 10);
     const s2 = parseInt(fd.get("player2_score"), 10);
     const s3 = parseInt(fd.get("player3_score"), 10);
     const s4 = parseInt(fd.get("player4_score"), 10);
 
-    // 숫자 체크
     if ([s1, s2, s3, s4].some((v) => Number.isNaN(v))) {
       alert("점수는 숫자로 입력해주세요.");
       return;
     }
 
-    // 🔥 합 100000 체크
     const total = s1 + s2 + s3 + s4;
     if (total !== 100000) {
       alert(`네 사람 점수 합이 100000이 아닙니다.\n현재 합: ${total}`);
@@ -210,7 +223,6 @@ function setupPersonalForm() {
     }
   });
 }
-
 
 async function loadGamesAndRanking() {
   const tbody = document.getElementById("games-tbody");
@@ -246,6 +258,7 @@ async function loadGamesAndRanking() {
 
     const pts = calcPts(scores);
 
+    
     const order = scores
       .map((s, i) => ({ s, i }))
       .sort((a, b) => b.s - a.s);
@@ -407,6 +420,40 @@ function updateStatsPlayerSelect() {
   }
 }
 
+// ======================= 개인별 통계 화면 =======================
+
+function setupStatsView() {
+  const select = document.getElementById("stats-player-select");
+  if (!select) return;
+
+  select.addEventListener("change", () => {
+    const name = select.value;
+    renderStatsForPlayer(name);
+  });
+}
+
+function updateStatsPlayerSelect() {
+  const select = document.getElementById("stats-player-select");
+  if (!select) return;
+
+  const prev = select.value;
+  select.innerHTML = '<option value="">플레이어를 선택하세요</option>';
+
+  PLAYER_SUMMARY.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.name;
+    opt.textContent = `${p.name} (${p.games}판, ${p.total_pt.toFixed(1)}pt)`;
+    select.appendChild(opt);
+  });
+
+  if (prev && PLAYER_SUMMARY.some((p) => p.name === prev)) {
+    select.value = prev;
+    renderStatsForPlayer(prev);
+  } else {
+    renderStatsForPlayer("");
+  }
+}
+
 function computePlayerDetailStats(playerName, games) {
   let totalGames = 0;
   let totalPt = 0;
@@ -414,7 +461,8 @@ function computePlayerDetailStats(playerName, games) {
   const recent = [];
   const coMap = {};
 
-  let tobiCount = 0;   // 점수가 음수인 판 수
+  let tobiCount = 0;   // 점수가 음수인
+  // 판 수
   let maxScore = null; // 한 판에서 얻은 최고 점수
 
   const gameRecords = []; // 개인이 참가한 게임 전체 기록
@@ -437,7 +485,6 @@ function computePlayerDetailStats(playerName, games) {
     const idx = names.findIndex((n) => n === playerName);
     if (idx === -1) return; // 이 판에 안 나왔으면 무시
 
-    // 등수 계산
     const order = scores
       .map((s, i) => ({ s, i }))
       .sort((a, b) => b.s - a.s);
@@ -452,23 +499,19 @@ function computePlayerDetailStats(playerName, games) {
     totalPt += pts[idx];
     rankCounts[myRank - 1] += 1;
 
-    // 토비: 점수가 0 미만인 경우
     if (scores[idx] < 0) {
       tobiCount += 1;
     }
 
-    // 최다 점수
     if (maxScore === null || scores[idx] > maxScore) {
       maxScore = scores[idx];
     }
 
-    // 최근 등수 그래프용
     recent.push({
       created_at: g.created_at,
       rank: myRank,
     });
 
-    // 같이 친 사람들 통계
     for (let j = 0; j < 4; j++) {
       if (j === idx) continue;
       const cname = (names[j] || "").trim();
@@ -481,7 +524,6 @@ function computePlayerDetailStats(playerName, games) {
       coMap[cname].co_rank_sum += ranks[j];
     }
 
-    // 개인 대국 기록용 전체 정보 저장
     gameRecords.push({
       id: g.id,
       created_at: g.created_at,
@@ -509,9 +551,7 @@ function computePlayerDetailStats(playerName, games) {
     }))
     .sort((a, b) => b.games - a.games);
 
-  // games는 id DESC 기준이니까 그래프 보기 좋게 오래된 순으로 뒤집기
   recent.reverse();
-  gameRecords.reverse();
 
   return {
     games: totalGames,
@@ -527,21 +567,21 @@ function computePlayerDetailStats(playerName, games) {
   };
 }
 
-
 function renderStatsForPlayer(name) {
   const summaryDiv = document.getElementById("stats-summary");
   const distDiv = document.getElementById("stats-rank-dist");
   const recentDiv = document.getElementById("stats-recent-ranks");
   const coTbody = document.getElementById("stats-co-tbody");
   const playerGamesTbody = document.getElementById("stats-player-games-tbody");
+  const numbersDiv = document.getElementById("stats-rank-numbers");
 
   if (!summaryDiv || !distDiv || !recentDiv || !coTbody) return;
 
-  // --- 플레이어가 선택되지 않았을 때 초기 상태 ---
   if (!name) {
     summaryDiv.innerHTML =
       '<p class="hint-text">왼쪽 상단에서 플레이어를 선택하세요.</p>';
     distDiv.innerHTML = "";
+    if (numbersDiv) numbersDiv.textContent = "";
     recentDiv.innerHTML =
       '<p class="hint-text">플레이어를 선택하면 최근 등수 그래프가 표시됩니다.</p>';
     coTbody.innerHTML =
@@ -556,10 +596,8 @@ function renderStatsForPlayer(name) {
     return;
   }
 
-  // --- 상세 통계 계산 ---
   const detail = computePlayerDetailStats(name, ALL_GAMES);
 
-  // 요약 정보 (게임 수, 총 pt, 연대율, 토비율, 최다 점수)
   summaryDiv.innerHTML = `
     <div class="stats-summary-main">
       <div><span class="stats-label">플레이어</span> <span class="stats-value">${name}</span></div>
@@ -601,8 +639,7 @@ function renderStatsForPlayer(name) {
   infoWrap.textContent = parts.join("  |  ");
   distDiv.appendChild(infoWrap);
 
-
-  // --- 최근 등수 그래프 (최대 30판) ---
+  // 최근 등수 그래프 (최대 30판)
   recentDiv.innerHTML = "";
   const recent = detail.recent.slice(-30);
   if (recent.length === 0) {
@@ -621,7 +658,7 @@ function renderStatsForPlayer(name) {
     recentDiv.appendChild(wrapper);
   }
 
-  // --- 같이 한 플레이어별 기록 테이블 ---
+  // 같이 한 플레이어별 기록
   coTbody.innerHTML = "";
   if (detail.coPlayers.length === 0) {
     coTbody.innerHTML =
@@ -629,16 +666,12 @@ function renderStatsForPlayer(name) {
   } else {
     detail.coPlayers.forEach((c) => {
       const tr = document.createElement("tr");
-
       const tdName = document.createElement("td");
       tdName.textContent = c.name;
-
       const tdGames = document.createElement("td");
       tdGames.textContent = c.games;
-
       const tdMy = document.createElement("td");
       tdMy.textContent = c.my_avg_rank.toFixed(2);
-
       const tdCo = document.createElement("td");
       tdCo.textContent = c.co_avg_rank.toFixed(2);
 
@@ -646,12 +679,11 @@ function renderStatsForPlayer(name) {
       tr.appendChild(tdGames);
       tr.appendChild(tdMy);
       tr.appendChild(tdCo);
-
       coTbody.appendChild(tr);
     });
   }
 
-  // --- 개인 대국 기록 테이블 (해당 플레이어가 참가한 판만) ---
+  // 개인 대국 기록 테이블 (HTML에 있으면)
   if (playerGamesTbody) {
     playerGamesTbody.innerHTML = "";
     if (!detail.gameRecords.length) {
@@ -661,12 +693,10 @@ function renderStatsForPlayer(name) {
       detail.gameRecords.forEach((rec) => {
         const tr = document.createElement("tr");
 
-        // 시간
         const tdTime = document.createElement("td");
         tdTime.textContent = formatKoreanTime(rec.created_at);
         tr.appendChild(tdTime);
 
-        // P1~P4
         for (let i = 0; i < 4; i++) {
           const td = document.createElement("td");
           const n = rec.names[i] || "";
@@ -678,7 +708,6 @@ function renderStatsForPlayer(name) {
             1
           )} / ${r}등)`;
 
-          // 선택한 플레이어가 앉아 있던 자리 강조
           if (i === rec.myIndex) {
             td.classList.add("my-player-cell");
           }
@@ -691,12 +720,8 @@ function renderStatsForPlayer(name) {
     }
   }
 
-  // --- 뱃지 정보 로딩 ---
   loadPlayerBadgesForStats(name);
 }
-
-
-
 
 async function loadPlayerBadgesForStats(name) {
   const container = document.getElementById("stats-badges");
@@ -736,8 +761,7 @@ async function loadPlayerBadgesForStats(name) {
 
     const main = document.createElement("div");
     main.className = "badge-main";
-    main.textContent = b.name;   // 코드(#1234) 빼고 이름만 표시
-
+    main.textContent = b.name; // 코드 없이 이름만 표시
 
     if (b.description) {
       const desc = document.createElement("div");
@@ -753,7 +777,382 @@ async function loadPlayerBadgesForStats(name) {
   container.appendChild(list);
 }
 
-// ======================= 관리자 화면 (뱃지) =======================
+// ======================= 아카이브 화면 =======================
+
+function setupArchiveView() {
+  const archiveSelect = document.getElementById("archive-select");
+  if (archiveSelect) {
+    archiveSelect.addEventListener("change", () => {
+      const id = archiveSelect.value;
+      loadArchiveGames(id);
+    });
+  }
+}
+
+
+async function reloadArchiveList() {
+  const tbody = document.getElementById("archive-list-tbody");
+  const archiveSelect = document.getElementById("archive-select");
+
+  let archives = [];
+  try {
+    archives = await fetchJSON("/api/archives");
+  } catch (err) {
+    console.error(err);
+    archives = [];
+  }
+  ARCHIVES = archives || [];
+
+  // 관리자 화면: 아카이브 목록 (삭제 버튼 포함)
+  if (tbody) {
+    tbody.innerHTML = "";
+    if (!ARCHIVES.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 4;
+      td.className = "ranking-placeholder";
+      td.textContent = "등록된 아카이브가 없습니다.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    } else {
+      ARCHIVES.forEach((a) => {
+        const tr = document.createElement("tr");
+
+        const tdName = document.createElement("td");
+        tdName.textContent = a.name;
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = formatKoreanTime(a.created_at);
+
+        const tdGames = document.createElement("td");
+        tdGames.textContent = a.game_count || 0;
+
+        const tdBtn = document.createElement("td");
+        const btn = document.createElement("button");
+        btn.textContent = "삭제";
+        btn.addEventListener("click", async () => {
+          if (!confirm(`아카이브 "${a.name}"을(를) 삭제할까요?`)) return;
+          try {
+            await fetchJSON(`/api/archives/${a.id}`, { method: "DELETE" });
+            await reloadArchiveList();
+
+            const archiveSelectEl = document.getElementById("archive-select");
+            if (archiveSelectEl && archiveSelectEl.value === String(a.id)) {
+              archiveSelectEl.value = "";
+              await loadArchiveGames("");
+            }
+          } catch (err) {
+            console.error(err);
+            alert("아카이브 삭제 실패: " + err.message);
+          }
+        });
+        tdBtn.appendChild(btn);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdTime);
+        tr.appendChild(tdGames);
+        tr.appendChild(tdBtn);
+        tbody.appendChild(tr);
+      });
+    }
+  }
+
+  // 아카이브 선택 드롭다운
+  if (archiveSelect) {
+    const prev = archiveSelect.value;
+    archiveSelect.innerHTML =
+      '<option value="">아카이브를 선택하세요</option>';
+    ARCHIVES.forEach((a) => {
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = `${a.name}`;
+      archiveSelect.appendChild(opt);
+    });
+
+    if (prev && ARCHIVES.some((a) => String(a.id) === String(prev))) {
+      archiveSelect.value = prev;
+      await loadArchiveGames(prev);
+    } else {
+      await loadArchiveGames("");
+    }
+  }
+}
+
+
+async function loadArchiveGames(archiveId) {
+  const gamesTbody = document.getElementById("archive-games-tbody");
+  const rankingTbody = document.getElementById("archive-ranking-tbody");
+
+  CURRENT_ARCHIVE_GAMES = [];
+  ARCHIVE_PLAYER_SUMMARY = [];
+
+  if (!gamesTbody || !rankingTbody) return;
+
+  if (!archiveId) {
+    gamesTbody.innerHTML =
+      '<tr><td colspan="5" class="ranking-placeholder">아카이브를 선택하세요.</td></tr>';
+    rankingTbody.innerHTML =
+      '<tr><td colspan="6" class="ranking-placeholder">아카이브를 선택하세요.</td></tr>';
+    return;
+  }
+
+  let games = [];
+  try {
+    games = await fetchJSON(`/api/archives/${archiveId}/games`);
+  } catch (err) {
+    console.error(err);
+    gamesTbody.innerHTML =
+      '<tr><td colspan="5" class="ranking-placeholder">아카이브 데이터를 불러오지 못했습니다.</td></tr>';
+    rankingTbody.innerHTML =
+      '<tr><td colspan="6" class="ranking-placeholder">아카이브 데이터를 불러오지 못했습니다.</td></tr>';
+    return;
+  }
+
+  CURRENT_ARCHIVE_GAMES = games || [];
+
+  // ---- 1) 왼쪽: 아카이브 대국 기록 ----
+  gamesTbody.innerHTML = "";
+  if (!CURRENT_ARCHIVE_GAMES.length) {
+    gamesTbody.innerHTML =
+      '<tr><td colspan="5" class="ranking-placeholder">이 아카이브에는 기록이 없습니다.</td></tr>';
+  } else {
+    CURRENT_ARCHIVE_GAMES.forEach((g) => {
+      const scores = [
+        Number(g.player1_score),
+        Number(g.player2_score),
+        Number(g.player3_score),
+        Number(g.player4_score),
+      ];
+      const names = [
+        g.player1_name,
+        g.player2_name,
+        g.player3_name,
+        g.player4_name,
+      ].map((n) => (n || "").trim());
+      const pts = calcPts(scores);
+
+      const order = scores
+        .map((s, i) => ({ s, i }))
+        .sort((a, b) => b.s - a.s);
+      const ranks = [0, 0, 0, 0];
+      order.forEach((o, idx) => {
+        ranks[o.i] = idx + 1;
+      });
+
+      const tr = document.createElement("tr");
+
+      const tdTime = document.createElement("td");
+      tdTime.textContent = formatKoreanTime(g.created_at);
+      tr.appendChild(tdTime);
+
+      for (let i = 0; i < 4; i++) {
+        const td = document.createElement("td");
+        const name = names[i] || "";
+        const score = scores[i];
+        const pt = pts[i];
+        td.innerHTML = `<strong>${name}</strong><br>${score} (${pt})`;
+        if (ranks[i] === 1) td.classList.add("winner-cell");
+        tr.appendChild(td);
+      }
+
+      gamesTbody.appendChild(tr);
+    });
+  }
+
+  // ---- 2) 오른쪽: 전체 등수 (플레이어별 요약) ----
+  const playerStats = {};
+  CURRENT_ARCHIVE_GAMES.forEach((g) => {
+    const scores = [
+      Number(g.player1_score),
+      Number(g.player2_score),
+      Number(g.player3_score),
+      Number(g.player4_score),
+    ];
+    const names = [
+      g.player1_name,
+      g.player2_name,
+      g.player3_name,
+      g.player4_name,
+    ].map((n) => (n || "").trim());
+    const pts = calcPts(scores);
+
+    const order = scores
+      .map((s, i) => ({ s, i }))
+      .sort((a, b) => b.s - a.s);
+    const ranks = [0, 0, 0, 0];
+    order.forEach((o, idx) => {
+      ranks[o.i] = idx + 1;
+    });
+
+    for (let i = 0; i < 4; i++) {
+      const name = names[i];
+      if (!name) continue;
+      if (!playerStats[name]) {
+        playerStats[name] = {
+          games: 0,
+          total_pt: 0,
+          rankCounts: [0, 0, 0, 0],
+        };
+      }
+      const st = playerStats[name];
+      st.games += 1;
+      st.total_pt += pts[i];
+      st.rankCounts[ranks[i] - 1] += 1;
+    }
+  });
+
+  const players = Object.entries(playerStats).map(([name, st]) => {
+    const games = st.games;
+    const total_pt = +st.total_pt.toFixed(1);
+    const c1 = st.rankCounts[0];
+    const c2 = st.rankCounts[1];
+    const yonde =
+      games > 0 ? +(((c1 + c2) * 100) / games).toFixed(1) : 0.0;
+    return {
+      name,
+      games,
+      total_pt,
+      yonde_rate: yonde,
+      rankCounts: st.rankCounts,
+    };
+  });
+  players.sort((a, b) => b.total_pt - a.total_pt);
+  ARCHIVE_PLAYER_SUMMARY = players;
+
+  rankingTbody.innerHTML = "";
+  if (!players.length) {
+    rankingTbody.innerHTML =
+      '<tr><td colspan="6" class="ranking-placeholder">이 아카이브에는 통계가 없습니다.</td></tr>';
+  } else {
+    players.forEach((p, idx) => {
+      const tr = document.createElement("tr");
+
+      const tdRank = document.createElement("td");
+      tdRank.textContent = idx + 1;
+      tr.appendChild(tdRank);
+
+      const tdName = document.createElement("td");
+      tdName.textContent = p.name;
+      tr.appendChild(tdName);
+
+      const tdGames = document.createElement("td");
+      tdGames.textContent = p.games;
+      tr.appendChild(tdGames);
+
+      const tdPt = document.createElement("td");
+      tdPt.textContent = p.total_pt.toFixed(1);
+      tr.appendChild(tdPt);
+
+      const tdY = document.createElement("td");
+      tdY.textContent = p.yonde_rate.toFixed(1) + "%";
+      tr.appendChild(tdY);
+
+      const tdDist = document.createElement("td");
+      tdDist.appendChild(createRankDistBar(p.rankCounts, p.games));
+      tr.appendChild(tdDist);
+
+      rankingTbody.appendChild(tr);
+    });
+  }
+}
+
+
+function renderArchiveStatsForPlayer(name) {
+  const summaryDiv = document.getElementById("archive-stats-summary");
+  const distDiv = document.getElementById("archive-stats-rank-dist");
+  const numbersDiv = document.getElementById("archive-stats-rank-numbers");
+  const recentDiv = document.getElementById("archive-stats-recent-ranks");
+  const coTbody = document.getElementById("archive-stats-co-tbody");
+
+  if (!summaryDiv || !distDiv || !recentDiv || !coTbody) return;
+
+  if (!name) {
+    summaryDiv.innerHTML =
+      '<p class="hint-text">왼쪽에서 아카이브와 플레이어를 선택하세요.</p>';
+    distDiv.innerHTML = "";
+    if (numbersDiv) numbersDiv.textContent = "";
+    recentDiv.innerHTML =
+      '<p class="hint-text">플레이어를 선택하면 최근 등수 그래프가 표시됩니다.</p>';
+    coTbody.innerHTML =
+      '<tr><td colspan="4" class="ranking-placeholder">데이터 없음</td></tr>';
+    return;
+  }
+
+  const detail = computePlayerDetailStats(name, CURRENT_ARCHIVE_GAMES);
+
+  summaryDiv.innerHTML = `
+    <div class="stats-summary-main">
+      <div><span class="stats-label">플레이어</span> <span class="stats-value">${name}</span></div>
+      <div><span class="stats-label">게임 수</span> <span class="stats-value">${detail.games}</span></div>
+      <div><span class="stats-label">총 pt</span> <span class="stats-value">${detail.total_pt.toFixed(
+        1
+      )}</span></div>
+      <div><span class="stats-label">연대율</span> <span class="stats-value">${detail.yonde_rate.toFixed(
+        1
+      )}%</span></div>
+      <div><span class="stats-label">토비율</span> <span class="stats-value">${detail.tobi_rate.toFixed(
+        1
+      )}% (${detail.tobi_count}회)</span></div>
+      <div><span class="stats-label">최다 점수</span> <span class="stats-value">${detail.max_score}</span></div>
+    </div>
+  `;
+
+  distDiv.innerHTML = "";
+  distDiv.appendChild(createRankDistBar(detail.rankCounts, detail.games));
+
+  if (numbersDiv) {
+    const g = detail.games || 0;
+    const [c1, c2, c3, c4] = detail.rankCounts;
+    const p1 = g ? ((c1 * 100) / g).toFixed(1) : "0.0";
+    const p2 = g ? ((c2 * 100) / g).toFixed(1) : "0.0";
+    const p3 = g ? ((c3 * 100) / g).toFixed(1) : "0.0";
+    const p4 = g ? ((c4 * 100) / g).toFixed(1) : "0.0";
+    numbersDiv.textContent = `1등: ${c1}판 (${p1}%) · 2등: ${c2}판 (${p2}%) · 3등: ${c3}판 (${p3}%) · 4등: ${c4}판 (${p4}%)`;
+  }
+
+  recentDiv.innerHTML = "";
+  const recent = detail.recent.slice(-30);
+  if (!recent.length) {
+    recentDiv.innerHTML =
+      '<p class="ranking-placeholder">최근 대국 데이터가 없습니다.</p>';
+  } else {
+    const wrapper = document.createElement("div");
+    wrapper.className = "recent-rank-graph";
+    recent.forEach((r) => {
+      const item = document.createElement("div");
+      item.className = `recent-rank-item rank-${r.rank}`;
+      item.textContent = r.rank;
+      item.title = `${formatKoreanTime(r.created_at)} - ${r.rank}등`;
+      wrapper.appendChild(item);
+    });
+    recentDiv.appendChild(wrapper);
+  }
+
+  coTbody.innerHTML = "";
+  if (!detail.coPlayers.length) {
+    coTbody.innerHTML =
+      '<tr><td colspan="4" class="ranking-placeholder">함께 친 플레이어가 없습니다.</td></tr>';
+  } else {
+    detail.coPlayers.forEach((c) => {
+      const tr = document.createElement("tr");
+      const tdName = document.createElement("td");
+      tdName.textContent = c.name;
+      const tdGames = document.createElement("td");
+      tdGames.textContent = c.games;
+      const tdMy = document.createElement("td");
+      tdMy.textContent = c.my_avg_rank.toFixed(2);
+      const tdCo = document.createElement("td");
+      tdCo.textContent = c.co_avg_rank.toFixed(2);
+      tr.appendChild(tdName);
+      tr.appendChild(tdGames);
+      tr.appendChild(tdMy);
+      tr.appendChild(tdCo);
+      coTbody.appendChild(tr);
+    });
+  }
+}
+
+// ======================= 관리자 화면 (뱃지 / 아카이브) =======================
 
 function setupAdminView() {
   const createForm = document.getElementById("badge-create-form");

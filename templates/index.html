@@ -13,6 +13,7 @@
     <div class="view-switch">
       <button class="view-switch-btn active" data-view="personal">개인 레이팅</button>
       <button class="view-switch-btn" data-view="stats">개인별 통계</button>
+      <button class="view-switch-btn" data-view="archive">아카이브</button>
       <button class="view-switch-btn" data-view="admin">관리자 기능</button>
     </div>
   </div>
@@ -162,6 +163,13 @@
         <section class="stats-panel">
           <h3>총 등수 통계</h3>
           <div id="stats-rank-dist" class="stats-rank-dist"></div>
+          <div id="stats-rank-numbers" class="stats-rank-numbers"></div>
+        </section>
+
+        <!-- (3) 총 등수 통계 -->
+        <section class="stats-panel">
+          <h3>총 등수 통계</h3>
+          <div id="stats-rank-dist" class="stats-rank-dist"></div>
         </section>
 
                 <!-- (4) 개인 대국 기록 -->
@@ -186,8 +194,6 @@
             </tbody>
           </table>
         </section>
-
-
       </div>
 
       <div class="right-panel">
@@ -217,7 +223,7 @@
           </table>
         </section>
 
-                <!-- (1) 보유 뱃지 : 왼쪽 맨 위로 이동 -->
+        <!-- (1) 보유 뱃지 -->
         <section class="stats-panel">
           <h2>보유 뱃지</h2>
           <div id="stats-badges" class="badge-list">
@@ -229,6 +235,80 @@
     </div>
   </div>
 
+    <!-- ================= 아카이브 화면 ================= -->
+  <div id="archive-view" class="view" style="display:none;">
+    <div class="main-layout">
+      <!-- 왼쪽: 아카이브 선택 + 대국 기록 -->
+      <div class="left-panel">
+        <section class="stats-panel">
+          <h2>아카이브 선택</h2>
+          <div class="stats-player-select">
+            <label for="archive-select">아카이브</label>
+            <select id="archive-select">
+              <option value="">아카이브를 선택하세요</option>
+            </select>
+          </div>
+          <p class="hint-text">
+            관리자 기능에서 CSV 파일을 업로드해 시즌 아카이브를 등록할 수 있습니다.
+          </p>
+        </section>
+
+        <section class="stats-panel">
+          <h3>아카이브 대국 기록</h3>
+          <table class="games-table">
+            <thead>
+              <tr>
+                <th>시간</th>
+                <th>P1</th>
+                <th>P2</th>
+                <th>P3</th>
+                <th>P4</th>
+              </tr>
+            </thead>
+            <tbody id="archive-games-tbody">
+              <tr>
+                <td colspan="5" class="ranking-placeholder">아카이브를 선택하세요.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <!-- 오른쪽: 전체 등수 (아카이브 기준) -->
+      <div class="right-panel">
+        <section class="ranking-panel">
+          <div class="ranking-header">
+            <h2>전체 등수 (아카이브)</h2>
+            <div class="rank-legend">
+              <span class="legend-color legend1"></span><span class="legend-text">1등</span>
+              <span class="legend-color legend2"></span><span class="legend-text">2등</span>
+              <span class="legend-color legend3"></span><span class="legend-text">3등</span>
+              <span class="legend-color legend4"></span><span class="legend-text">4등</span>
+            </div>
+          </div>
+
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>이름</th>
+                <th>게임 수</th>
+                <th>총 pt</th>
+                <th>연대율</th>
+                <th>등수 분포</th>
+              </tr>
+            </thead>
+            <tbody id="archive-ranking-tbody">
+              <tr>
+                <td colspan="6" class="ranking-placeholder">아카이브를 선택하세요.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </div>
+
 
   <!-- ================= 관리자 기능 화면 ================= -->
   <div id="admin-view" class="view" style="display:none;">
@@ -236,10 +316,6 @@
       <div class="left-panel">
         <section class="admin-panel">
           <h2>뱃지 목록</h2>
-            <div class="games-header-right">
-              <a href="/export_badges" class="export-link">뱃지 목록 CSV 내보내기</a>
-              <a href="/import_badges" class="import-link">뱃지 목록 CSV 업로드</a>
-            </div>
           <table class="badge-table">
             <thead>
               <tr>
@@ -286,18 +362,53 @@
             <button type="submit">추가</button>
           </form>
         </section>
+
+        <section class="admin-panel">
+          <h3>아카이브 생성 (CSV 업로드)</h3>
+          <p class="hint-text">
+            한 시즌의 대국 기록이 담긴 CSV 파일을 업로드하면<br>
+            새 아카이브로 저장됩니다. (형식은 /export 로 받은 CSV와 동일하면 편해요.)
+          </p>
+          <form id="archive-upload-form"
+                method="post"
+                action="/admin/archive_import"
+                enctype="multipart/form-data"
+                autocomplete="off">
+            <div class="form-row">
+              <label>아카이브 이름</label>
+              <input type="text" name="archive_name" placeholder="예: 2024 시즌 1" required>
+            </div>
+            <div class="form-row">
+              <label>CSV 파일</label>
+              <input type="file" name="file" accept=".csv" required>
+            </div>
+            <button type="submit">업로드</button>
+          </form>
+        </section>
+
+        <section class="admin-panel">
+          <h3>아카이브 목록</h3>
+          <table class="badge-table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>생성 시각</th>
+                <th>게임 수</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="archive-list-tbody">
+              <tr>
+                <td colspan="4" class="ranking-placeholder">등록된 아카이브가 없습니다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
       </div>
 
       <div class="right-panel">
         <section class="admin-panel">
-          <div class="games-header">
-            <h2>플레이어 뱃지 관리</h2>
-            <div class="games-header-right">
-              <a href="/export_player_badges" class="export-link">CSV 내보내기</a>
-              <a href="/import_player_badges" class="import-link">CSV 업로드</a>
-            </div>
-          </div>
-
+          <h2>플레이어 뱃지 관리</h2>
           <div class="admin-player-select">
             <input type="text" id="admin-player-name" placeholder="플레이어 이름 입력">
             <button id="admin-load-player">불러오기</button>
@@ -306,7 +417,6 @@
             <p class="hint-text">플레이어 이름을 입력하고 '불러오기'를 눌러주세요.</p>
           </div>
         </section>
-
 
         <section class="admin-panel">
           <h3>뱃지 부여</h3>
