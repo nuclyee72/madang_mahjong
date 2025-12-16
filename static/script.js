@@ -431,9 +431,8 @@ async function loadGamesAndRanking() {
       rankCounts: st.rankCounts,
     };
   });
-
-  PLAYER_SUMMARY = players;
-
+  
+  PLAYER_SUMMARY = players.filter((p) => (p.games || 0) >= 4);
   // ✅ 정렬 상태대로 렌더
   renderRankingTable();
 
