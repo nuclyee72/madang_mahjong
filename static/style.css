@@ -912,3 +912,74 @@ th.sortable:hover {
 
 th.sortable.sorted-desc { border-bottom: 2px solid #4f7dff; }
 th.sortable.sorted-asc  { border-top: 2px solid #4f7dff; }
+
+/* 모바일에서 표 안깨지게: 가로 스크롤 허용 */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 표 레이아웃 안정화 */
+#ranking-table,
+#archive-ranking-table,
+#tournament-ranking-table {
+  width: 100%;
+  table-layout: fixed; /* 칼럼 폭 제어 쉬워짐 */
+}
+
+/* 그래프(마지막 칼럼) 최소 폭 확보 */
+#ranking-table th:last-child,
+#ranking-table td:last-child,
+#archive-ranking-table th:last-child,
+#archive-ranking-table td:last-child,
+#tournament-ranking-table th:last-child,
+#tournament-ranking-table td:last-child {
+  min-width: 160px;
+}
+
+/* 그래프 자체는 td 폭 꽉 채우게 */
+.rank-dist-bar {
+  width: 100%;
+  min-width: 160px;
+  height: 16px;
+}
+
+/* 연대율(6번째 칼럼) 줄바꿈/폭 낭비 방지 */
+#ranking-table th:nth-child(6),
+#ranking-table td:nth-child(6),
+#archive-ranking-table th:nth-child(6),
+#archive-ranking-table td:nth-child(6),
+#tournament-ranking-table th:nth-child(6),
+#tournament-ranking-table td:nth-child(6) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 모바일에서 글자/패딩 줄이고, 그래프 텍스트는 숨겨서 더 안찝히게 */
+@media (max-width: 640px) {
+  #ranking-table,
+  #archive-ranking-table,
+  #tournament-ranking-table {
+    min-width: 720px; /* 이 정도는 돼야 그래프가 안 찌그러져 */
+  }
+
+  #ranking-table th, #ranking-table td,
+  #archive-ranking-table th, #archive-ranking-table td,
+  #tournament-ranking-table th, #tournament-ranking-table td {
+    padding: 6px 6px;
+    font-size: 12px;
+  }
+
+  /* 연대율 칸이 너무 커보이면 여기서 더 줄이기 */
+  #ranking-table td:nth-child(6),
+  #archive-ranking-table td:nth-child(6),
+  #tournament-ranking-table td:nth-child(6) {
+    font-size: 12px;
+  }
+
+  /* 막대 안 % 글씨 때문에 더 좁아지는 경우가 있어서 숨김 */
+  .rank-dist-bar .rank-seg span {
+    display: none;
+  }
+}
