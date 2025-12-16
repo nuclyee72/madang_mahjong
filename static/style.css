@@ -1,3 +1,5 @@
+html { overflow-y: scroll; }
+
 html {
   zoom: 0.9;  /* 1.0 = 원래 크기, 0.9 = 90% 크기 */
 }
@@ -753,3 +755,160 @@ td.winner {
 .rank-dist-detail-row {
   line-height: 1.4;
 }
+
+/* 순위 칸 */
+.ranking-table th:nth-child(1),
+.ranking-table td:nth-child(1) { width: 30px; }
+
+/* 이름 칸 */
+.ranking-table th:nth-child(2),
+.ranking-table td:nth-child(2) { width: 70px; }
+
+/* 게임 수 */
+.ranking-table th:nth-child(3),
+.ranking-table td:nth-child(3) { width: 50px; }
+
+/* 총 pt */
+.ranking-table th:nth-child(4),
+.ranking-table td:nth-child(4) { width: 55px; }
+
+/* 평균 pt (신규) */
+.ranking-table th:nth-child(5),
+.ranking-table td:nth-child(5) { width: 55px; }
+
+/* 연대율 */
+.ranking-table th:nth-child(6),
+.ranking-table td:nth-child(6) { width: 55px; }
+
+/* 등수 분포 */
+.ranking-table th:nth-child(7),
+.ranking-table td:nth-child(7) { width: 130px; }
+
+/* 1~4등 퍼센트/판수 한 줄 */
+.rank-dist-summary-row{
+  display:flex;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.rank-dist-summary-row span{
+  flex: 1;
+  text-align: center;
+  padding: 2px 4px;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  background: #fff;
+}
+
+/* 개인 대국 기록 테이블(통계/대회 공용) */
+.stats-player-games-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.stats-player-games-table th,
+.stats-player-games-table td{
+  border: 1px solid #ddd;
+  padding: 3px 4px;
+  text-align: center;
+}
+
+/* 선택한 플레이어 자리 강조 (JS에서 my-player-cell 붙임) */
+.my-player-cell{
+  outline: 2px solid #4f7dff;
+  outline-offset: -2px;
+  background: #e4ebff;
+}
+
+/* ✅ 대회 전용 폼을 개인전 폼과 동일하게 */
+#tournament-game-form .row {
+  display: grid;
+  grid-template-columns: 40px 1fr 140px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#tournament-game-form label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+#tournament-game-form input[type="text"],
+#tournament-game-form input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+}
+
+#tournament-game-form button {
+  margin-top: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* ✅ 대회 랭킹 테이블(7컬럼) 폭 고정 */
+.tournament-ranking-table th:nth-child(1),
+.tournament-ranking-table td:nth-child(1) { width: 30px; }
+
+.tournament-ranking-table th:nth-child(2),
+.tournament-ranking-table td:nth-child(2) { width: 70px; }
+
+.tournament-ranking-table th:nth-child(3),
+.tournament-ranking-table td:nth-child(3) { width: 50px; }
+
+.tournament-ranking-table th:nth-child(4),
+.tournament-ranking-table td:nth-child(4) { width: 55px; }
+
+.tournament-ranking-table th:nth-child(5),
+.tournament-ranking-table td:nth-child(5) { width: 55px; }
+
+.tournament-ranking-table th:nth-child(6),
+.tournament-ranking-table td:nth-child(6) { width: 55px; }
+
+.tournament-ranking-table th:nth-child(7),
+.tournament-ranking-table td:nth-child(7) { width: 130px; }
+
+/* ===== 정렬 가능한 헤더 ===== */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable:hover {
+  background-color: #ececec;
+}
+
+.sort-indicator {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  color: #666;
+}
+
+/* ranking-table 컬럼 폭(7컬럼 기준) */
+.ranking-table th:nth-child(1),
+.ranking-table td:nth-child(1) { width: 30px; }
+
+.ranking-table th:nth-child(2),
+.ranking-table td:nth-child(2) { width: 70px; }
+
+.ranking-table th:nth-child(3),
+.ranking-table td:nth-child(3) { width: 55px; }  /* 게임 수 */
+
+.ranking-table th:nth-child(4),
+.ranking-table td:nth-child(4) { width: 55px; }  /* 총 pt */
+
+.ranking-table th:nth-child(5),
+.ranking-table td:nth-child(5) { width: 55px; }  /* 평균 pt */
+
+.ranking-table th:nth-child(6),
+.ranking-table td:nth-child(6) { width: 55px; }  /* 연대율 */
+
+.ranking-table th:nth-child(7),
+.ranking-table td:nth-child(7) { width: 130px; } /* 등수 분포 */
+
+th.sortable.sorted-desc { border-bottom: 2px solid #4f7dff; }
+th.sortable.sorted-asc  { border-top: 2px solid #4f7dff; }

@@ -35,6 +35,23 @@ def init_db():
         )
     """)
 
+    # 대회전 게임 기록 (개인전과 동일 스키마)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS tournament_games (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT NOT NULL,
+            player1_name TEXT NOT NULL,
+            player2_name TEXT NOT NULL,
+            player3_name TEXT NOT NULL,
+            player4_name TEXT NOT NULL,
+            player1_score INTEGER NOT NULL,
+            player2_score INTEGER NOT NULL,
+            player3_score INTEGER NOT NULL,
+            player4_score INTEGER NOT NULL
+        )
+    """)
+
+
     # 뱃지 정의
     conn.execute("""
         CREATE TABLE IF NOT EXISTS badges (
@@ -357,6 +374,73 @@ def import_games():
     print(f"[IMPORT] inserted rows: {inserted}")
     return redirect(url_for("index_page"))
 
+@app.route("/api/tournament_games", methods=["GET"])
+def list_tournament_games():
+    conn = get_db()
+    cur = conn.execute("SELECT * FROM tournament_games ORDER BY id DESC")
+    rows = cur.fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+
+@app.route("/api/tournament_games", methods=["POST"])
+def create_tournament_game():
+    data = request.get_json() or {}
+
+    required = [
+        "player1_name", "player2_name", "player3_name", "player4_name",
+        "player1_score", "player2_score", "player3_score", "player4_score",
+    ]
+    if not all(k in data for k in required):
+        return jsonify({"error": "missing fields"}), 400
+
+    p1 = str(data["player1_name"]).strip()
+    p2 = str(data["player2_name"]).strip()
+    p3 = str(data["player3_name"]).strip()
+    p4 = str(data["player4_name"]).strip()
+    if not (p1 and p2 and p3 and p4):
+        return jsonify({"error": "all player names required"}), 400
+
+    try:
+        s1 = int(data["player1_score"])
+        s2 = int(data["player2_score"])
+        s3 = int(data["player3_score"])
+        s4 = int(data["player4_score"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "scores must be integers"}), 400
+
+    # ✅ 합 100000 서버에서도 체크
+    if (s1 + s2 + s3 + s4) != 100000:
+        return jsonify({"error": "total score must be 100000"}), 400
+
+    created_at = datetime.now().isoformat(timespec="minutes")
+
+    conn = get_db()
+    cur = conn.execute("""
+        INSERT INTO tournament_games (
+            created_at,
+            player1_name, player2_name, player3_name, player4_name,
+            player1_score, player2_score, player3_score, player4_score
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (created_at, p1, p2, p3, p4, s1, s2, s3, s4))
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+
+    return jsonify({"id": new_id}), 201
+
+
+@app.route("/api/tournament_games/<int:game_id>", methods=["DELETE"])
+def delete_tournament_game(game_id):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM tournament_games WHERE id = ?", (game_id,))
+    conn.commit()
+    deleted = cur.rowcount
+    conn.close()
+    if deleted == 0:
+        return jsonify({"error": "not found"}), 404
+    return jsonify({"ok": True})
+
 
 # ================== 뱃지 / 관리자 API ==================
 
@@ -498,6 +582,300 @@ def delete_player_badge(assign_id):
     if deleted == 0:
         return jsonify({"error": "not found"}), 404
     return jsonify({"ok": True})
+
+# ================== 뱃지 CSV 내보내기/업로드 ==================
+
+@app.route("/export_badges", methods=["GET"])
+def export_badges():
+    conn = get_db()
+    cur = conn.execute("""
+        SELECT code, name, grade, description
+        FROM badges
+        ORDER BY code ASC
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["code", "name", "grade", "description"])
+
+    for r in rows:
+        writer.writerow([r["code"], r["name"], r["grade"], r["description"] or ""])
+
+    csv_data = output.getvalue()
+    output.close()
+    csv_bytes = csv_data.encode("cp949", errors="replace")
+
+    return Response(
+        csv_bytes,
+        mimetype="text/csv; charset=cp949",
+        headers={"Content-Disposition": "attachment; filename=badges.csv"},
+    )
+
+
+@app.route("/import_badges", methods=["GET", "POST"])
+def import_badges():
+    if request.method == "GET":
+        return """
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+          <meta charset="UTF-8">
+          <title>뱃지 목록 CSV 업로드</title>
+          <link rel="stylesheet" href="/static/style.css">
+        </head>
+        <body>
+          <div class="top-bar">
+            <h1>뱃지 목록 CSV 업로드</h1>
+            <div class="view-switch">
+              <a href="/" class="view-switch-btn">메인으로 돌아가기</a>
+            </div>
+          </div>
+          <div class="main-layout">
+            <div class="left-panel">
+              <section class="admin-panel">
+                <h2>뱃지 목록 CSV 업로드</h2>
+                <p class="hint-text">
+                  * 헤더 예시: code,name,grade,description<br>
+                  * code는 숫자(고유)입니다.
+                </p>
+                <form method="post" enctype="multipart/form-data">
+                  <p><input type="file" name="file" accept=".csv" required></p>
+                  <p><button type="submit">업로드</button></p>
+                </form>
+              </section>
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+
+    file = request.files.get("file")
+    if not file:
+        return "파일이 없습니다.", 400
+
+    raw = file.read()
+    text = None
+    for enc in ("utf-8-sig", "utf-8", "cp949"):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    if text is None:
+        return "알 수 없는 인코딩입니다. UTF-8 또는 CP949로 저장해주세요.", 400
+
+    import io as _io
+    sample = "\n".join(text.splitlines()[:5])
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;")
+    except Exception:
+        dialect = csv.excel
+        dialect.delimiter = ","
+
+    reader = csv.DictReader(_io.StringIO(text), dialect=dialect)
+
+    def pick(row, keys, default=""):
+        for k in keys:
+            if k in row and row[k] not in (None, ""):
+                return row[k]
+        return default
+
+    conn = get_db()
+    inserted = 0
+    updated = 0
+
+    for row in reader:
+        try:
+            code = int(float(pick(row, ["code", "코드"], "0")))
+        except Exception:
+            code = 0
+
+        name = str(pick(row, ["name", "이름"], "")).strip()
+        grade = str(pick(row, ["grade", "등급"], "")).strip()
+        desc = str(pick(row, ["description", "설명"], "")).strip()
+
+        if not code or not name or not grade:
+            continue
+
+        # code 기준 업서트(있으면 update, 없으면 insert)
+        try:
+            conn.execute(
+                "INSERT INTO badges (code, name, grade, description) VALUES (?, ?, ?, ?)",
+                (code, name, grade, desc),
+            )
+            inserted += 1
+        except sqlite3.IntegrityError:
+            conn.execute(
+                "UPDATE badges SET name = ?, grade = ?, description = ? WHERE code = ?",
+                (name, grade, desc, code),
+            )
+            updated += 1
+
+    conn.commit()
+    conn.close()
+
+    print(f"[IMPORT_BADGES] inserted={inserted}, updated={updated}")
+    return redirect(url_for("index_page"))
+
+
+# ================== 플레이어 뱃지 부여 CSV 내보내기/업로드 ==================
+
+@app.route("/export_player_badges", methods=["GET"])
+def export_player_badges():
+    conn = get_db()
+    cur = conn.execute("""
+        SELECT
+          pb.player_name,
+          pb.badge_code,
+          pb.granted_at,
+          b.name AS badge_name,
+          b.grade AS badge_grade,
+          b.description AS badge_description
+        FROM player_badges pb
+        LEFT JOIN badges b ON pb.badge_code = b.code
+        ORDER BY pb.id ASC
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "player_name", "badge_code", "granted_at",
+        "badge_name", "badge_grade", "badge_description"
+    ])
+
+    for r in rows:
+        writer.writerow([
+            r["player_name"],
+            r["badge_code"],
+            r["granted_at"],
+            r["badge_name"] or "",
+            r["badge_grade"] or "",
+            r["badge_description"] or "",
+        ])
+
+    csv_data = output.getvalue()
+    output.close()
+    csv_bytes = csv_data.encode("cp949", errors="replace")
+
+    return Response(
+        csv_bytes,
+        mimetype="text/csv; charset=cp949",
+        headers={"Content-Disposition": "attachment; filename=player_badges.csv"},
+    )
+
+
+@app.route("/import_player_badges", methods=["GET", "POST"])
+def import_player_badges():
+    if request.method == "GET":
+        return """
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+          <meta charset="UTF-8">
+          <title>플레이어 뱃지 부여 CSV 업로드</title>
+          <link rel="stylesheet" href="/static/style.css">
+        </head>
+        <body>
+          <div class="top-bar">
+            <h1>플레이어 뱃지 부여 CSV 업로드</h1>
+            <div class="view-switch">
+              <a href="/" class="view-switch-btn">메인으로 돌아가기</a>
+            </div>
+          </div>
+          <div class="main-layout">
+            <div class="left-panel">
+              <section class="admin-panel">
+                <h2>플레이어 뱃지 부여 CSV 업로드</h2>
+                <p class="hint-text">
+                  * 헤더 예시: player_name,badge_code,granted_at<br>
+                  * granted_at이 비어있으면 업로드 시각으로 저장됩니다.
+                </p>
+                <form method="post" enctype="multipart/form-data">
+                  <p><input type="file" name="file" accept=".csv" required></p>
+                  <p><button type="submit">업로드</button></p>
+                </form>
+              </section>
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+
+    file = request.files.get("file")
+    if not file:
+        return "파일이 없습니다.", 400
+
+    raw = file.read()
+    text = None
+    for enc in ("utf-8-sig", "utf-8", "cp949"):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    if text is None:
+        return "알 수 없는 인코딩입니다. UTF-8 또는 CP949로 저장해주세요.", 400
+
+    import io as _io
+    sample = "\n".join(text.splitlines()[:5])
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;")
+    except Exception:
+        dialect = csv.excel
+        dialect.delimiter = ","
+
+    reader = csv.DictReader(_io.StringIO(text), dialect=dialect)
+
+    def pick(row, keys, default=""):
+        for k in keys:
+            if k in row and row[k] not in (None, ""):
+                return row[k]
+        return default
+
+    conn = get_db()
+    inserted = 0
+    skipped = 0
+
+    for row in reader:
+        player_name = str(pick(row, ["player_name", "플레이어", "이름"], "")).strip()
+        try:
+            badge_code = int(float(pick(row, ["badge_code", "code", "뱃지코드", "뱃지 코드"], "0")))
+        except Exception:
+            badge_code = 0
+
+        granted_at = str(pick(row, ["granted_at", "부여시각", "시간"], "")).strip()
+        if not granted_at:
+            granted_at = datetime.now().isoformat(timespec="minutes")
+
+        if not player_name or not badge_code:
+            skipped += 1
+            continue
+
+        # 중복 방지(완전 동일 row면 skip)
+        cur = conn.execute("""
+            SELECT 1 FROM player_badges
+            WHERE player_name = ? AND badge_code = ? AND granted_at = ?
+            LIMIT 1
+        """, (player_name, badge_code, granted_at))
+        if cur.fetchone():
+            skipped += 1
+            continue
+
+        conn.execute("""
+            INSERT INTO player_badges (player_name, badge_code, granted_at)
+            VALUES (?, ?, ?)
+        """, (player_name, badge_code, granted_at))
+        inserted += 1
+
+    conn.commit()
+    conn.close()
+
+    print(f"[IMPORT_PLAYER_BADGES] inserted={inserted}, skipped={skipped}")
+    return redirect(url_for("index_page"))
 
 
 # ================== 아카이브 API ==================
@@ -667,6 +1045,32 @@ def admin_archive_import():
 
     # 다시 메인 화면으로
     return redirect(url_for("index_page"))
+
+# ================== 개인전 기록 초기화(시즌 리셋) ==================
+
+@app.route("/api/admin/reset_games", methods=["POST"])
+def reset_games():
+    """
+    모든 개인전 대국 기록을 삭제하고 ID도 다시 1부터 시작하도록 초기화합니다.
+    (badges / player_badges / archive 등은 건드리지 않음)
+    """
+    conn = get_db()
+    try:
+        # games 테이블 전체 삭제
+        conn.execute("DELETE FROM games")
+
+        # SQLite AUTOINCREMENT 리셋 (선택사항이지만, 시즌별로 ID 깔끔하게 보이게 하려고)
+        try:
+            conn.execute("DELETE FROM sqlite_sequence WHERE name = 'games'")
+        except Exception:
+            # sqlite_sequence가 없는 경우도 있으니 무시
+            pass
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    return jsonify({"ok": True})
 
 # ================== 기본 페이지 ==================
 

@@ -13,6 +13,7 @@
     <div class="view-switch">
       <button class="view-switch-btn active" data-view="personal">개인 레이팅</button>
       <button class="view-switch-btn" data-view="stats">개인별 통계</button>
+      <button class="view-switch-btn" data-view="tournament">대회 전용</button>
       <button class="view-switch-btn" data-view="archive">아카이브</button>
       <button class="view-switch-btn" data-view="admin">관리자 기능</button>
     </div>
@@ -118,20 +119,34 @@
             </div>
           </div>
 
-          <table class="ranking-table">
+          <table class="ranking-table" id="ranking-table">
             <thead>
               <tr>
                 <th>순위</th>
                 <th>이름</th>
-                <th>게임 수</th>
-                <th>총 pt</th>
-                <th>연대율</th>
+
+                <th class="sortable" data-sort-key="games">
+                  게임 수
+                </th>
+
+                <th class="sortable" data-sort-key="total_pt">
+                  총 pt
+                </th>
+
+                <th class="sortable" data-sort-key="avg_pt">
+                  평균 pt
+                </th>
+
+                <th class="sortable" data-sort-key="yonde_rate">
+                  연대율
+                </th>
+
                 <th>등수 분포</th>
               </tr>
             </thead>
             <tbody id="ranking-tbody">
               <tr>
-                <td colspan="6" class="ranking-placeholder">통계 없음</td>
+                <td colspan="7" class="ranking-placeholder">통계 없음</td>
               </tr>
             </tbody>
           </table>
@@ -164,12 +179,6 @@
           <h3>총 등수 통계</h3>
           <div id="stats-rank-dist" class="stats-rank-dist"></div>
           <div id="stats-rank-numbers" class="stats-rank-numbers"></div>
-        </section>
-
-        <!-- (3) 총 등수 통계 -->
-        <section class="stats-panel">
-          <h3>총 등수 통계</h3>
-          <div id="stats-rank-dist" class="stats-rank-dist"></div>
         </section>
 
                 <!-- (4) 개인 대국 기록 -->
@@ -235,6 +244,107 @@
     </div>
   </div>
 
+  <!-- ================= 대회 전용 화면 (개인 레이팅 복제) ================= -->
+  <div id="tournament-view" class="view" style="display:none;">
+    <div class="main-layout equal-layout">
+      <!-- 왼쪽: 입력 + 게임 데이터 + 규칙 -->
+      <div class="left-panel">
+
+        <section class="form-panel">
+          <h2>대회 대국 기록 입력</h2>
+          <form id="tournament-game-form" method="post" autocomplete="off">
+            <div class="row">
+              <label>P1(동)</label>
+              <input name="player1_name" placeholder="플레이어 1 이름" required>
+              <input name="player1_score" type="text" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>P2(남)</label>
+              <input name="player2_name" placeholder="플레이어 2 이름" required>
+              <input name="player2_score" type="text" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>P3(서)</label>
+              <input name="player3_name" placeholder="플레이어 3 이름" required>
+              <input name="player3_score" type="text" placeholder="점수" required>
+            </div>
+            <div class="row">
+              <label>P4(북)</label>
+              <input name="player4_name" placeholder="플레이어 4 이름" required>
+              <input name="player4_score" type="text" placeholder="점수" required>
+            </div>
+            <button type="submit">저장</button>
+          </form>
+        </section>
+
+        <section class="games-panel">
+          <div class="games-header">
+            <h2>대회 대국 기록</h2>
+            <div class="games-header-right">
+              <a href="/export_tournament" class="export-link">CSV 내보내기</a>
+              <a href="/import_tournament" class="import-link">CSV 업로드</a>
+            </div>
+          </div>
+
+          <table class="games-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>시간</th>
+                <th>P1</th>
+                <th>P2</th>
+                <th>P3</th>
+                <th>P4</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tournament-games-tbody"></tbody>
+          </table>
+        </section>
+
+        <section class="rule-panel">
+          <h2>대회 규칙</h2>
+          <ul>
+            <li>대회 전용 창입니다</li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- 오른쪽: 전체 등수 -->
+      <div class="right-panel">
+        <section class="ranking-panel">
+          <div class="ranking-header">
+            <h2>대회 전체 등수</h2>
+            <div class="rank-legend">
+              <span class="legend-color legend1"></span><span class="legend-text">1등</span>
+              <span class="legend-color legend2"></span><span class="legend-text">2등</span>
+              <span class="legend-color legend3"></span><span class="legend-text">3등</span>
+              <span class="legend-color legend4"></span><span class="legend-text">4등</span>
+            </div>
+          </div>
+
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>이름</th>
+                <th>게임 수</th>
+                <th>총 pt</th>
+                <th>평균 pt</th>
+                <th>연대율</th>
+                <th>등수 분포</th>
+              </tr>
+            </thead>
+            <tbody id="tournament-ranking-tbody">
+              <tr><td colspan="7" class="ranking-placeholder">통계 없음</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </div>
+
+
     <!-- ================= 아카이브 화면 ================= -->
   <div id="archive-view" class="view" style="display:none;">
     <div class="main-layout">
@@ -287,23 +397,34 @@
             </div>
           </div>
 
-          <table class="ranking-table">
+          <table class="ranking-table" id="archive-ranking-table">
             <thead>
               <tr>
                 <th>순위</th>
                 <th>이름</th>
-                <th>게임 수</th>
-                <th>총 pt</th>
-                <th>연대율</th>
+
+                <th class="sortable" data-sort-key="games">
+                  게임 수
+                </th>
+
+                <th class="sortable" data-sort-key="total_pt">
+                  총 pt
+                </th>
+
+                <th class="sortable" data-sort-key="avg_pt">
+                  평균 pt
+                </th>
+
+                <th class="sortable" data-sort-key="yonde_rate">
+                  연대율
+                </th>
+
                 <th>등수 분포</th>
               </tr>
             </thead>
-            <tbody id="archive-ranking-tbody">
-              <tr>
-                <td colspan="6" class="ranking-placeholder">아카이브를 선택하세요.</td>
-              </tr>
-            </tbody>
+            <tbody id="archive-ranking-tbody"></tbody>
           </table>
+
         </section>
       </div>
     </div>
@@ -315,6 +436,21 @@
     <div class="main-layout">
       <div class="left-panel">
         <section class="admin-panel">
+          <section class="admin-panel">
+            <h3>뱃지 CSV 백업 / 복원</h3>
+            <div class="games-header-right">
+              <a href="/export_badges" class="export-link">뱃지 목록 CSV</a>
+              <a href="/import_badges" class="import-link">뱃지 목록 업로드</a>
+            </div>
+            <div class="games-header-right" style="margin-top:6px;">
+              <a href="/export_player_badges" class="export-link">뱃지 부여 CSV</a>
+              <a href="/import_player_badges" class="import-link">뱃지 부여 업로드</a>
+            </div>
+            <p class="hint-text" style="margin-top:6px;">
+              업로드는 “추가/갱신(뱃지)” + “추가(부여 목록, 중복 자동 스킵)” 방식입니다.
+            </p>
+          </section>
+
           <h2>뱃지 목록</h2>
           <table class="badge-table">
             <thead>
@@ -434,6 +570,16 @@
             <button type="submit">부여</button>
           </form>
         </section>
+
+        <section class="admin-panel">
+          <h3>개인전 기록 초기화</h3>
+          <p class="hint-text">
+            새 시즌 시작 시 사용하세요.<br>
+            모든 개인전 대국 기록이 삭제되며, 되돌릴 수 없습니다.
+          </p>
+          <button id="reset-games-btn">개인전 기록 전체 삭제</button>
+        </section>
+
       </div>
     </div>
   </div>
