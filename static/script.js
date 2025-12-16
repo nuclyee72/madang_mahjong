@@ -4,7 +4,10 @@ const RETURN_SCORE = 30000;
 
 // 전체 게임 / 플레이어 요약 캐시 (통계 화면용)
 let ALL_GAMES = [];
-let PLAYER_SUMMARY = [];
+let PLAYER_SUMMARY = [];       // ✅ 개인 레이팅 표(4판 이상) 전용
+let PLAYER_SUMMARY_ALL = [];   // ✅ 게임 기준 전체 플레이어(필터 전)
+let STATS_PLAYER_LIST = [];    // ✅ 개인별 통계 셀렉트 전용(뱃지 포함)
+
 let ALL_BADGES = [];
 
 // ===== 개인 레이팅(전체 등수) 정렬 상태 =====
@@ -18,6 +21,8 @@ let ARCHIVE_RANKING_SORT = { key: "total_pt", dir: "desc" }; // 아카이브 전
 
 // ===== 대회 전용 =====
 let TOURNAMENT_GAMES = [];
+
+let STATS_BADGE_ONLY_START = -1; // ✅ 셀렉트에서 "뱃지만 보유" 구역 시작 인덱스
 
 // ===== 포인트 계산 =====
 function calcPts(scores) {
@@ -270,6 +275,57 @@ function renderRankingTable() {
   updateSortIndicatorsForTable("ranking-table", RANKING_SORT);
 }
 
+async function rebuildStatsPlayerList() {
+  const map = new Map();
+
+  // 1) 게임에 한 번이라도 나온 플레이어 전부
+  (PLAYER_SUMMARY_ALL || []).forEach((p) => {
+    if (!p?.name) return;
+    map.set(p.name, {
+      name: p.name,
+      games: p.games || 0,
+      total_pt: Number(p.total_pt || 0),
+    });
+  });
+
+  // 2) 뱃지만 가진 플레이어도 포함
+  try {
+    const allPB = await fetchJSON("/api/player_badges"); // ✅ GET 전체 목록 필요
+    (allPB || []).forEach((pb) => {
+      const n = (pb.player_name || "").toString().trim();
+      if (!n) return;
+      if (!map.has(n)) {
+        map.set(n, { name: n, games: 0, total_pt: 0 });
+      }
+    });
+  } catch (e) {
+    console.warn("Failed to load all player badges:", e);
+  }
+
+  const all = Array.from(map.values());
+
+  // ✅ 위: 게임 있는 사람(등수순=총pt 내림차순)
+  const withGames = all
+    .filter((p) => (p.games || 0) > 0)
+    .sort((a, b) =>
+      (Number(b.total_pt || 0) - Number(a.total_pt || 0)) ||
+      (Number(b.games || 0) - Number(a.games || 0)) ||
+      String(a.name).localeCompare(String(b.name), "ko")
+    );
+
+  // ✅ 아래: 뱃지만 있는 사람
+  const badgeOnly = all
+    .filter((p) => (p.games || 0) === 0)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"));
+
+  STATS_BADGE_ONLY_START = withGames.length;
+  STATS_PLAYER_LIST = [...withGames, ...badgeOnly];
+
+  updateStatsPlayerSelect();
+}
+
+
+
 // ======================= 개인 레이팅 화면 =======================
 function setupPersonalForm() {
   const form = document.getElementById("game-form");
@@ -431,13 +487,19 @@ async function loadGamesAndRanking() {
       rankCounts: st.rankCounts,
     };
   });
-  
-  PLAYER_SUMMARY = players.filter((p) => (p.games || 0) >= 4);
-  // ✅ 정렬 상태대로 렌더
-  renderRankingTable();
 
-  // 개인별 통계 화면 플레이어 목록 갱신
-  updateStatsPlayerSelect();
+  // ✅ 게임 기준 전체 플레이어(필터 전)
+  PLAYER_SUMMARY_ALL = players;
+
+  // ✅ 개인 레이팅 표는 4판 이상만
+  PLAYER_SUMMARY = players.filter((p) => (p.games || 0) >= 4);
+
+  // ✅ 개인 레이팅 표 렌더(정렬 상태 포함)
+  renderRankingTable(); // 내부에서 updateSortIndicatorsForTable도 처리함
+
+  // ✅ 개인별 통계 셀렉트는 "전체 + 뱃지 전용 플레이어"로 다시 구성
+  await rebuildStatsPlayerList();
+
 }
 
 // ======================= 개인별 통계 화면 =======================
@@ -457,23 +519,32 @@ function updateStatsPlayerSelect() {
   const prev = select.value;
   select.innerHTML = '<option value="">플레이어를 선택하세요</option>';
 
-  // 보기 좋게는 “총pt 내림차순” 기준으로 옵션 생성
-  const sorted = [...PLAYER_SUMMARY].sort((a, b) => (b.total_pt || 0) - (a.total_pt || 0));
+  const list = (STATS_PLAYER_LIST && STATS_PLAYER_LIST.length)
+    ? STATS_PLAYER_LIST
+    : (PLAYER_SUMMARY_ALL || []); // fallback
 
-  sorted.forEach((p) => {
+  list.forEach((p) => {
     const opt = document.createElement("option");
     opt.value = p.name;
-    opt.textContent = `${p.name} (${p.games}판, ${p.total_pt.toFixed(1)}pt)`;
+
+    // 표시 문구: 게임 있으면 기존처럼, 없으면 "뱃지만 보유"
+    if ((p.games || 0) > 0) {
+      opt.textContent = `${p.name} (${p.games}판, ${Number(p.total_pt || 0).toFixed(1)}pt)`;
+    } else {
+      opt.textContent = `${p.name}`;
+    }
+
     select.appendChild(opt);
   });
 
-  if (prev && sorted.some((p) => p.name === prev)) {
+  if (prev && list.some((p) => p.name === prev)) {
     select.value = prev;
     renderStatsForPlayer(prev);
   } else {
     renderStatsForPlayer("");
   }
 }
+
 
 function computePlayerDetailStats(playerName, games) {
   let totalGames = 0;
@@ -1365,6 +1436,8 @@ function setupAdminView() {
         if (statsSelect && statsSelect.value === player) {
           await loadPlayerBadgesForStats(player);
         }
+        await rebuildStatsPlayerList();
+        
       } catch (err) {
         console.error(err);
         alert("뱃지 부여 실패: " + err.message);
@@ -1508,6 +1581,8 @@ async function loadAdminPlayerBadges(name) {
         if (statsSelect && statsSelect.value === name) {
           await loadPlayerBadgesForStats(name);
         }
+        await rebuildStatsPlayerList();
+
       } catch (err) {
         console.error(err);
         alert("삭제 실패: " + err.message);

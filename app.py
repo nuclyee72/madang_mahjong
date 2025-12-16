@@ -507,9 +507,41 @@ def delete_badge(badge_id):
         return jsonify({"error": "badge not found"}), 404
     return jsonify({"ok": True})
 
+@app.route("/api/player_badges", methods=["GET", "POST"])
+def player_badges_api():
+    if request.method == "GET":
+        conn = get_db()
+        cur = conn.execute("""
+            SELECT
+                pb.id,
+                pb.player_name,
+                pb.badge_code,
+                pb.granted_at,
+                b.name AS badge_name,
+                b.grade AS badge_grade,
+                b.description AS badge_description
+            FROM player_badges pb
+            LEFT JOIN badges b ON pb.badge_code = b.code
+            ORDER BY pb.id DESC
+        """)
+        rows = cur.fetchall()
+        conn.close()
 
-@app.route("/api/player_badges", methods=["POST"])
-def assign_badge():
+        return jsonify([
+            {
+                "id": r["id"],
+                "player_name": r["player_name"],
+                "badge_code": r["badge_code"],
+                "code": r["badge_code"],  # 프론트 편의용(옵션)
+                "granted_at": r["granted_at"],
+                "name": r["badge_name"] or "",
+                "grade": r["badge_grade"] or "",
+                "description": r["badge_description"] or "",
+            }
+            for r in rows
+        ])
+
+    # ===== POST (기존 assign_badge 내용 그대로) =====
     data = request.get_json() or {}
     player_name = str(data.get("player_name", "")).strip()
     try:
@@ -535,6 +567,7 @@ def assign_badge():
     conn.commit()
     conn.close()
     return jsonify({"ok": True}), 201
+
 
 
 @app.route("/api/player_badges/by_player/<player_name>", methods=["GET"])
