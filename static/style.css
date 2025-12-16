@@ -33,7 +33,7 @@ h1 {
 
 /* 왼쪽: 입력 + 게임데이터 */
 .left-panel {
-  flex: 1.2;
+  flex: 1.1;
 }
 
 /* 오른쪽: 전체 등수 */
@@ -928,23 +928,6 @@ th.sortable.sorted-asc  { border-top: 2px solid #4f7dff; }
   table-layout: fixed; /* 칼럼 폭 제어 쉬워짐 */
 }
 
-/* 그래프(마지막 칼럼) 최소 폭 확보 */
-#ranking-table th:last-child,
-#ranking-table td:last-child,
-#archive-ranking-table th:last-child,
-#archive-ranking-table td:last-child,
-#tournament-ranking-table th:last-child,
-#tournament-ranking-table td:last-child {
-  min-width: 160px;
-}
-
-/* 그래프 자체는 td 폭 꽉 채우게 */
-.rank-dist-bar {
-  width: 100%;
-  min-width: 160px;
-  height: 16px;
-}
-
 /* 연대율(6번째 칼럼) 줄바꿈/폭 낭비 방지 */
 #ranking-table th:nth-child(6),
 #ranking-table td:nth-child(6),
@@ -956,30 +939,113 @@ th.sortable.sorted-asc  { border-top: 2px solid #4f7dff; }
   font-variant-numeric: tabular-nums;
 }
 
-/* 모바일에서 글자/패딩 줄이고, 그래프 텍스트는 숨겨서 더 안찝히게 */
-@media (max-width: 640px) {
-  #ranking-table,
-  #archive-ranking-table,
-  #tournament-ranking-table {
-    min-width: 720px; /* 이 정도는 돼야 그래프가 안 찌그러져 */
-  }
 
-  #ranking-table th, #ranking-table td,
-  #archive-ranking-table th, #archive-ranking-table td,
-  #tournament-ranking-table th, #tournament-ranking-table td {
-    padding: 6px 6px;
-    font-size: 12px;
-  }
+/* ✅ 모든 화면 공통: 연대율 칸이 폭을 다 먹지 못하게 + 그래프는 셀 안에서 100%로 */
+#ranking-table,
+#archive-ranking-table,
+#tournament-ranking-table {
+  table-layout: fixed; /* 핵심 */
+  width: 100%;
+}
 
-  /* 연대율 칸이 너무 커보이면 여기서 더 줄이기 */
-  #ranking-table td:nth-child(6),
-  #archive-ranking-table td:nth-child(6),
-  #tournament-ranking-table td:nth-child(6) {
-    font-size: 12px;
-  }
+/* (선택) 이름 칸이 길면 옆 칸을 침범하지 않게 */
+#ranking-table th:nth-child(2),
+#ranking-table td:nth-child(2),
+#archive-ranking-table th:nth-child(2),
+#archive-ranking-table td:nth-child(2),
+#tournament-ranking-table th:nth-child(2),
+#tournament-ranking-table td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  /* 막대 안 % 글씨 때문에 더 좁아지는 경우가 있어서 숨김 */
-  .rank-dist-bar .rank-seg span {
-    display: none;
-  }
+/* ✅ 연대율(6번째) 폭 고정 */
+#ranking-table th:nth-child(6),
+#ranking-table td:nth-child(6),
+#archive-ranking-table th:nth-child(6),
+#archive-ranking-table td:nth-child(6),
+#tournament-ranking-table th:nth-child(6),
+#tournament-ranking-table td:nth-child(6) {
+  width: 84px;            /* 여기 숫자만 살짝 조절하면 돼요 */
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ✅ 그래프(7번째) 칸 폭 확보 */
+#ranking-table th:nth-child(7),
+#ranking-table td:nth-child(7),
+#archive-ranking-table th:nth-child(7),
+#archive-ranking-table td:nth-child(7),
+#tournament-ranking-table th:nth-child(7),
+#tournament-ranking-table td:nth-child(7) {
+  width: 200px;           /* 데스크탑에서 잘리면 220~260으로 올려도 돼요 */
+}
+
+/* ✅ 그래프는 “셀 폭에 맞춰서” (잘림 방지) */
+#ranking-table td:nth-child(7) .rank-dist-bar,
+#archive-ranking-table td:nth-child(7) .rank-dist-bar,
+#tournament-ranking-table td:nth-child(7) .rank-dist-bar {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ================= FIX: 그래프 잘림 / 연대율 폭 문제 ================= */
+
+/* flex 레이아웃에서 오른쪽 패널이 내용 때문에 안 줄어들며 잘리는 문제 방지 */
+.left-panel,
+.right-panel {
+  min-width: 0;
+}
+
+/* 테이블은 고정 레이아웃 + 마지막(그래프) 칼럼은 "남는 폭"만 쓰게 */
+#ranking-table,
+#archive-ranking-table,
+#tournament-ranking-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* (선택) 이름이 길면 옆 칸 침범 방지 */
+#ranking-table th:nth-child(2),
+#ranking-table td:nth-child(2),
+#archive-ranking-table th:nth-child(2),
+#archive-ranking-table td:nth-child(2),
+#tournament-ranking-table th:nth-child(2),
+#tournament-ranking-table td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ✅ 연대율(6번째) 폭을 작게 고정 (여기가 커지면 그래프가 죽어요) */
+#ranking-table th:nth-child(6),
+#ranking-table td:nth-child(6),
+#archive-ranking-table th:nth-child(6),
+#archive-ranking-table td:nth-child(6),
+#tournament-ranking-table th:nth-child(6),
+#tournament-ranking-table td:nth-child(6) {
+  width: 55px !important;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ✅ 그래프(7번째)는 고정 px 주지 말고 "남는 폭"을 쓰게 */
+#ranking-table th:nth-child(7),
+#ranking-table td:nth-child(7),
+#archive-ranking-table th:nth-child(7),
+#archive-ranking-table td:nth-child(7),
+#tournament-ranking-table th:nth-child(7),
+#tournament-ranking-table td:nth-child(7) {
+  width: auto !important;
+}
+
+/* ✅ 그래프 바: min-width 강제 제거 + 원래 높이로 */
+.rank-dist-bar {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0 !important;     /* 핵심: 여기 때문에 안 줄어들고 잘렸어요 */
+  height: 14px !important;     /* 원래 크기 */
+  box-sizing: border-box;
 }
