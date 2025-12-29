@@ -1079,6 +1079,199 @@ def admin_archive_import():
     # 다시 메인 화면으로
     return redirect(url_for("index_page"))
 
+# ---- 대회전 CSV 내보내기 ----
+
+@app.route("/export_tournament", methods=["GET"])
+def export_tournament_games():
+    conn = get_db()
+    cur = conn.execute("""
+        SELECT
+            id, created_at,
+            player1_name, player2_name, player3_name, player4_name,
+            player1_score, player2_score, player3_score, player4_score
+        FROM tournament_games
+        ORDER BY id ASC
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    def calc_pts(scores):
+        UMA = [50, 10, -10, -30]
+        RETURN_SCORE = 30000
+        order = sorted(range(4), key=lambda i: scores[i], reverse=True)
+
+        uma_for_player = [0, 0, 0, 0]
+        for rank, idx in enumerate(order):
+            uma_for_player[idx] = UMA[rank]
+
+        pts = []
+        for i in range(4):
+            base = (scores[i] - RETURN_SCORE) / 1000.0
+            pts.append(base + uma_for_player[i])
+        return pts
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow([
+        "ID", "시간",
+        "P1 이름", "P1 점수", "P1 pt",
+        "P2 이름", "P2 점수", "P2 pt",
+        "P3 이름", "P3 점수", "P3 pt",
+        "P4 이름", "P4 점수", "P4 pt",
+    ])
+
+    for row in rows:
+        scores = [
+            row["player1_score"],
+            row["player2_score"],
+            row["player3_score"],
+            row["player4_score"],
+        ]
+        pts = calc_pts(scores)
+
+        writer.writerow([
+            row["id"],
+            row["created_at"],
+            row["player1_name"], scores[0], f"{pts[0]:.1f}",
+            row["player2_name"], scores[1], f"{pts[1]:.1f}",
+            row["player3_name"], scores[2], f"{pts[2]:.1f}",
+            row["player4_name"], scores[3], f"{pts[3]:.1f}",
+        ])
+
+    csv_data = output.getvalue()
+    output.close()
+
+    csv_bytes = csv_data.encode("cp949", errors="replace")
+
+    return Response(
+        csv_bytes,
+        mimetype="text/csv; charset=cp949",
+        headers={
+            "Content-Disposition": "attachment; filename=madang_mahjong_tournament.csv"
+        },
+    )
+
+
+# ---- 대회전 CSV 업로드 ----
+
+@app.route("/import_tournament", methods=["GET", "POST"])
+def import_tournament_games():
+    if request.method == "GET":
+        return """
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+          <meta charset="UTF-8">
+          <title>대회전 CSV 업로드</title>
+          <link rel="stylesheet" href="/static/style.css">
+        </head>
+        <body>
+          <div class="top-bar">
+            <h1>대회전 CSV 업로드</h1>
+            <div class="view-switch">
+              <a href="/" class="view-switch-btn">메인으로 돌아가기</a>
+            </div>
+          </div>
+          <div class="main-layout">
+            <div class="left-panel">
+              <section class="games-panel">
+                <h2>대회전 CSV 업로드</h2>
+                <p class="hint-text">
+                  * /export_tournament 에서 받은 CSV나<br>
+                  * ID / 시간 / P1 이름 / P1 점수 / ... 형식의 파일 모두 인식합니다.
+                </p>
+                <form method="post" enctype="multipart/form-data">
+                  <p><input type="file" name="file" accept=".csv" required></p>
+                  <p><button type="submit">업로드</button></p>
+                </form>
+              </section>
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+
+    file = request.files.get("file")
+    if not file:
+        return "파일이 없습니다.", 400
+
+    raw = file.read()
+    text = None
+    for enc in ("utf-8-sig", "utf-8", "cp949"):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+
+    if text is None:
+        return "알 수 없는 인코딩입니다. UTF-8 또는 CP949로 저장해주세요.", 400
+
+    import io as _io
+    sample = "\n".join(text.splitlines()[:5])
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;")
+    except Exception:
+        dialect = csv.excel
+        dialect.delimiter = ","
+
+    reader = csv.DictReader(_io.StringIO(text), dialect=dialect)
+
+    def pick(row, keys, default=""):
+        for k in keys:
+            if k in row and row[k] not in (None, ""):
+                return row[k]
+        return default
+
+    def pick_int(row, keys, default=0):
+        val = pick(row, keys, None)
+        if val is None or val == "":
+            return default
+        try:
+            return int(float(val))
+        except (ValueError, TypeError):
+            return default
+
+    conn = get_db()
+    inserted = 0
+
+    for row in reader:
+        created_at = pick(row, ["created_at", "시간"])
+        if not created_at:
+            created_at = datetime.now().isoformat(timespec="minutes")
+
+        p1_name = pick(row, ["player1_name", "P1 이름", "P1이름"])
+        p2_name = pick(row, ["player2_name", "P2 이름", "P2이름"])
+        p3_name = pick(row, ["player3_name", "P3 이름", "P3이름"])
+        p4_name = pick(row, ["player4_name", "P4 이름", "P4이름"])
+
+        s1 = pick_int(row, ["player1_score", "P1 점수", "P1점수"])
+        s2 = pick_int(row, ["player2_score", "P2 점수", "P2점수"])
+        s3 = pick_int(row, ["player3_score", "P3 점수", "P3점수"])
+        s4 = pick_int(row, ["player4_score", "P4 점수", "P4점수"])
+
+        if not (p1_name or p2_name or p3_name or p4_name):
+            continue
+
+        conn.execute("""
+            INSERT INTO tournament_games (
+                created_at,
+                player1_name, player2_name, player3_name, player4_name,
+                player1_score, player2_score, player3_score, player4_score
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (created_at,
+              p1_name, p2_name, p3_name, p4_name,
+              s1, s2, s3, s4))
+        inserted += 1
+
+    conn.commit()
+    conn.close()
+
+    print(f"[IMPORT_TOURNAMENT] inserted rows: {inserted}")
+    return redirect(url_for("index_page"))
+
 # ================== 개인전 기록 초기화(시즌 리셋) ==================
 
 @app.route("/api/admin/reset_games", methods=["POST"])
