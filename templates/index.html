@@ -110,7 +110,7 @@
       <div class="right-panel">
         <section class="ranking-panel">
           <div class="ranking-header">
-            <h2>전체 등수</h2>
+            <h2 id="ranking-title" class="ranking-title" title="클릭하면 시즌 점수로 바뀝니다">전체 등수</h2>
             <div class="rank-legend">
               <span class="legend-color legend1"></span><span class="legend-text">1등</span>
               <span class="legend-color legend2"></span><span class="legend-text">2등</span>
@@ -119,37 +119,67 @@
             </div>
           </div>
 
-          <table class="ranking-table" id="ranking-table">
-            <thead>
-              <tr>
-                <th>순위</th>
-                <th>이름</th>
+          <div id="ranking-pt-wrap">
+            <div class="table-scroll">
+              <table id="ranking-table" class="ranking-table">
+                <!-- 기존 thead/tbody 그대로 -->
+                 
+                <table class="ranking-table" id="ranking-table">
+                  <thead>
+                    <tr>
+                      <th>순위</th>
+                      <th>이름</th>
 
-                <th class="sortable" data-sort-key="games">
-                  게임 수
-                </th>
+                      <th class="sortable" data-sort-key="games">
+                        게임 수
+                      </th>
 
-                <th class="sortable" data-sort-key="total_pt">
-                  총 pt
-                </th>
+                      <th class="sortable" data-sort-key="total_pt">
+                        총 pt
+                      </th>
 
-                <th class="sortable" data-sort-key="avg_pt">
-                  평균 pt
-                </th>
+                      <th class="sortable" data-sort-key="avg_pt">
+                        평균 pt
+                      </th>
 
-                <th class="sortable" data-sort-key="yonde_rate">
-                  연대율
-                </th>
+                      <th class="sortable" data-sort-key="yonde_rate">
+                        연대율
+                      </th>
 
-                <th>등수 분포</th>
-              </tr>
-            </thead>
-            <tbody id="ranking-tbody">
-              <tr>
-                <td colspan="7" class="ranking-placeholder">통계 없음</td>
-              </tr>
-            </tbody>
-          </table>
+                      <th>등수 분포</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ranking-tbody">
+                    <tr>
+                      <td colspan="7" class="ranking-placeholder">통계 없음</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <tbody id="ranking-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ✅ (B) 신규: 시즌 점수 표 (처음엔 숨김) -->
+          <div id="ranking-season-wrap" style="display:none;">
+            <div class="table-scroll">
+              <table id="season-ranking-table" class="ranking-table">
+                <thead>
+                  <tr>
+                    <th>순위</th>
+                    <th>이름</th>
+                    <th>총 pt 변환</th>
+                    <th>게임 수 변환</th>
+                    <th>대회 총 변환</th>
+                    <th>시즌 점수</th>
+                  </tr>
+                </thead>
+                <tbody id="season-ranking-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+
         </section>
       </div>
     </div>

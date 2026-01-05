@@ -1049,3 +1049,109 @@ th.sortable.sorted-asc  { border-top: 2px solid #4f7dff; }
   height: 14px !important;     /* 원래 크기 */
   box-sizing: border-box;
 }
+
+/* ✅ 제목 클릭 가능 표시 */
+.ranking-title{
+  cursor: pointer;
+  user-select: none;
+}
+.ranking-title:hover{
+  text-decoration: underline;
+}
+
+/* ===== 전체 등수/시즌 점수 토글 UI 간격 고정 ===== */
+
+/* 제목(h2) 아래 여백 때문에 표가 내려가는 것 방지 */
+.ranking-header h2,
+#ranking-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+/* 헤더와 표 사이 간격은 여기서만 통제 */
+.right-panel .ranking-header {
+  margin-bottom: 6px; /* 원래 느낌이면 4~8px 사이로 조절 */
+}
+
+/* ranking 패널 안의 table은 기본 margin-top(8px) 없애기 */
+.right-panel .ranking-panel table {
+  margin-top: 0 !important;
+}
+
+/* 시즌 점수 표도 레이아웃 고정 */
+#season-ranking-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* 시즌 점수 컬럼 폭 (원하면 숫자만 조절) */
+#season-ranking-table th:nth-child(1),
+#season-ranking-table td:nth-child(1) { width: 30px; }  /* 순위 */
+
+#season-ranking-table th:nth-child(2),
+#season-ranking-table td:nth-child(2) { width: 70px; }  /* 이름 */
+
+#season-ranking-table th:nth-child(3),
+#season-ranking-table td:nth-child(3) { width: 90px; }  /* 총pt 변환 */
+
+#season-ranking-table th:nth-child(4),
+#season-ranking-table td:nth-child(4) { width: 90px; }  /* 게임수 변환 */
+
+#season-ranking-table th:nth-child(5),
+#season-ranking-table td:nth-child(5) { width: 100px; } /* 대회 총 변환 */
+
+#season-ranking-table th:nth-child(6),
+#season-ranking-table td:nth-child(6) { width: 90px; }  /* 시즌 점수 */
+
+/* 숫자들은 줄바꿈/높이 흔들림 방지 */
+#season-ranking-table td:nth-child(n+3) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 두 모드에서 패널 높이 덜 흔들리게 최소 높이 확보 */
+#ranking-pt-wrap,
+#ranking-season-wrap {
+  min-height: 320px; /* 대충 적당한 값. 필요하면 280~420 조절 */
+}
+
+#season-ranking-table td{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 컬럼 폭은 px 말고 %로 (화면 크기에 맞춰 자동으로 줄어듦) */
+#season-ranking-table th:nth-child(1),
+#season-ranking-table td:nth-child(1){ width: 8%; }   /* 순위 */
+
+#season-ranking-table th:nth-child(2),
+#season-ranking-table td:nth-child(2){ width: 18%; }  /* 이름 */
+
+#season-ranking-table th:nth-child(3),
+#season-ranking-table td:nth-child(3){ width: 18%; }  /* 총pt 변환 */
+
+#season-ranking-table th:nth-child(4),
+#season-ranking-table td:nth-child(4){ width: 18%; }  /* 게임수 변환 */
+
+#season-ranking-table th:nth-child(5),
+#season-ranking-table td:nth-child(5){ width: 20%; }  /* 대회 변환 */
+
+#season-ranking-table th:nth-child(6),
+#season-ranking-table td:nth-child(6){ width: 18%; }  /* 시즌 점수 */
+
+/* 숫자는 폭이 흔들리지 않게 */
+#season-ranking-table td:nth-child(n+3){
+  font-variant-numeric: tabular-nums;
+}
+
+/* 아주 좁은 화면에서는 글씨/패딩 더 줄여서 스크롤을 더 줄임 */
+@media (max-width: 520px){
+  #season-ranking-table th,
+  #season-ranking-table td{
+    font-size: 11px;
+    padding: 2px 3px;
+  }
+}

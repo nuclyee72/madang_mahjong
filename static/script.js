@@ -10,6 +10,11 @@ let STATS_PLAYER_LIST = [];    // ✅ 개인별 통계 셀렉트 전용(뱃지 �
 
 let ALL_BADGES = [];
 
+let RANKING_VIEW_MODE = "pt"; // "pt" | "season"
+let TOURNAMENT_STATS = {};    // { [name]: { games, sumPosPt } }
+let SEASON_SUMMARY = [];      // 시즌 점수용 표 데이터
+
+
 // ===== 개인 레이팅(전체 등수) 정렬 상태 =====
 let RANKING_SORT = { key: "total_pt", dir: "desc" }; // 기본: 총 pt 내림차순
 
@@ -23,6 +28,12 @@ let ARCHIVE_RANKING_SORT = { key: "total_pt", dir: "desc" }; // 아카이브 전
 let TOURNAMENT_GAMES = [];
 
 let STATS_BADGE_ONLY_START = -1; // ✅ 셀렉트에서 "뱃지만 보유" 구역 시작 인덱스
+
+const SEASON_YEAR2 = 25;  // 2025든 25든 둘 다 25로 맞출거
+const SEASON_FROM = 1;
+const SEASON_TO = 6;
+let SEASON_TOURNAMENT_STATS = null; // { [name]: { joinCount, ptSum } }
+
 
 // ===== 포인트 계산 =====
 function calcPts(scores) {
@@ -145,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupPersonalForm();
   setupRankingSort(); // 개인레이팅(전체등수) 정렬
+  setupRankingTitleToggle(); // ✅ "전체 등수" 클릭 토글
 
   setupStatsView();
 
@@ -494,8 +506,26 @@ async function loadGamesAndRanking() {
   // ✅ 개인 레이팅 표는 4판 이상만
   PLAYER_SUMMARY = players.filter((p) => (p.games || 0) >= 4);
 
-  // ✅ 개인 레이팅 표 렌더(정렬 상태 포함)
-  renderRankingTable(); // 내부에서 updateSortIndicatorsForTable도 처리함
+   // ✅ 대회 데이터 가져와서 시즌점수 계산 준비
+  let tg = [];
+  try {
+    tg = await fetchJSON("/api/tournament_games");
+  } catch (e) {
+    console.warn("Failed to load tournament games:", e);
+    tg = [];
+  }
+  TOURNAMENT_GAMES = tg || [];
+  TOURNAMENT_STATS = buildTournamentStats(TOURNAMENT_GAMES);
+
+  // ✅ 시즌 점수 표 데이터 생성
+  SEASON_SUMMARY = await buildSeasonSummary(PLAYER_SUMMARY_ALL);
+
+  // ✅ 현재 모드에 맞는 표를 렌더
+  if (RANKING_VIEW_MODE === "season") renderSeasonRankingTable();
+  else renderRankingTable();
+
+  // (기존) 개인별 통계 셀렉트 갱신 등
+  updateStatsPlayerSelect();
 
   // ✅ 개인별 통계 셀렉트는 "전체 + 뱃지 전용 플레이어"로 다시 구성
   await rebuildStatsPlayerList();
@@ -1604,4 +1634,299 @@ async function loadAdminPlayerBadges(name) {
   });
 
   container.appendChild(wrapper);
+}
+
+function setupRankingTitleToggle() {
+  const title = document.getElementById("ranking-title");
+  if (!title) return;
+
+  title.addEventListener("click", async () => {
+    await setRankingViewMode(RANKING_VIEW_MODE === "pt" ? "season" : "pt");
+  });
+
+  (async () => {
+    await setRankingViewMode(RANKING_VIEW_MODE);
+  })();
+}
+
+async function setRankingViewMode(mode) {
+  RANKING_VIEW_MODE = mode;
+
+  const title = document.getElementById("ranking-title");
+  const ptWrap = document.getElementById("ranking-pt-wrap");
+  const seasonWrap = document.getElementById("ranking-season-wrap");
+
+  if (ptWrap) ptWrap.style.display = mode === "pt" ? "block" : "none";
+  if (seasonWrap) seasonWrap.style.display = mode === "season" ? "block" : "none";
+
+  if (title) {
+    if (mode === "pt") {
+      title.textContent = "전체 등수";
+      title.title = "클릭하면 시즌 점수로 바뀝니다";
+    } else {
+      title.textContent = "시즌 점수";
+      title.title = "클릭하면 전체 등수로 돌아갑니다";
+    }
+  }
+
+  // ✅ 모드에 맞게 렌더
+  if (mode === "pt") {
+    renderRankingTable();
+  } else {
+    // 시즌 점수는(아카이브 fetch가 필요하니) 확실히 최신으로
+    SEASON_SUMMARY = await buildSeasonSummary(PLAYER_SUMMARY_ALL || []);
+    renderSeasonRankingTable();
+  }
+}
+
+
+// ===== 시즌 점수 구성요소 계산 =====
+function calcSeasonComponents({ totalPt = 0, games = 0, tourGames = 0, tourSumPosPt = 0 }) {
+  const PI_APPROX = 3.14;
+
+  // [ 500 * (2/3.14) * atan(totalPt/250) ]
+  const totalPtScore = 500 * (2 / PI_APPROX) * Math.atan((Number(totalPt) || 0) / 250);
+
+  // [ 200 * (1 - 0.95^games) ]
+  const gamesScore = 200 * (1 - Math.pow(0.95, Number(games) || 0));
+
+  // [ min(tourGames,3)*50 + 150*(1 - 0.995^(sum max(tourPt,0))) ]
+  const tCnt = Math.min(Number(tourGames) || 0, 3);
+  const tSum = Math.max(Number(tourSumPosPt) || 0, 0);
+  const tournamentScore = (tCnt * 50) + 150 * (1 - Math.pow(0.995, tSum));
+
+  const seasonScore = totalPtScore + gamesScore + tournamentScore;
+
+  return {
+    totalPtScore,
+    gamesScore,
+    tournamentScore,
+    seasonScore,
+  };
+}
+
+// ===== 대회 데이터로 플레이어별 (참가 횟수, 양수 pt 합) 만들기 =====
+function buildTournamentStats(tournamentGames) {
+  const stats = {};
+  (tournamentGames || []).forEach((g) => {
+    const scores = [
+      Number(g.player1_score),
+      Number(g.player2_score),
+      Number(g.player3_score),
+      Number(g.player4_score),
+    ];
+    const names = [
+      g.player1_name,
+      g.player2_name,
+      g.player3_name,
+      g.player4_name,
+    ].map((n) => (n || "").trim());
+
+    const pts = calcPts(scores);
+
+    for (let i = 0; i < 4; i++) {
+      const name = names[i];
+      if (!name) continue;
+      if (!stats[name]) stats[name] = { games: 0, sumPosPt: 0 };
+      stats[name].games += 1;
+      if (pts[i] > 0) stats[name].sumPosPt += pts[i];
+    }
+  });
+  return stats;
+}
+
+// ===== 시즌 점수 표 데이터 만들기 (아카이브 기반) =====
+async function buildSeasonSummary(playersAll) {
+  // ✅ 시즌(1~6월) 먼슬리 대회 아카이브 기준 참가/ptSum 로드
+  const seasonT = await loadSeasonTournamentStatsFromArchives(); // { [name]: { joinCount, ptSum } }
+
+  const list = (playersAll || []).map((p) => {
+    const totalPt = Number(p.total_pt || 0);
+    const games = Number(p.games || 0);
+
+    // ✅ 대회: "참가 아카이브 개수" + "그 아카이브들에서의 총pt 합"
+    const t = seasonT?.[p.name] || { joinCount: 0, ptSum: 0 };
+
+    // 개인전 변환점수
+    const totalPtScore = 500 * (2 / 3.14) * Math.atan(totalPt / 250);
+    const gamesScore = 200 * (1 - Math.pow(0.95, games));
+
+    // ✅ 대회 변환점수 (네가 만든 함수 사용)
+    const tournamentScore = calcTournamentConvertedScore(t.joinCount, t.ptSum);
+
+    const seasonScore = totalPtScore + gamesScore + tournamentScore;
+
+    return {
+      name: p.name,
+      games,
+
+      total_pt_score: totalPtScore,
+      games_score: gamesScore,
+      tournament_score: tournamentScore,
+      season_score: seasonScore,
+
+      // (디버그용) 필요하면 나중에 표시할 때 쓸 수 있음
+      _t_joinCount: t.joinCount,
+      _t_ptSum: t.ptSum,
+    };
+  });
+
+  // 개인 레이팅 표 조건(4판 이상) 그대로
+  const filtered = list.filter((x) => (x.games || 0) >= 4);
+
+  // 시즌 점수 내림차순
+  filtered.sort(
+    (a, b) =>
+      (b.season_score - a.season_score) ||
+      String(a.name).localeCompare(String(b.name), "ko")
+  );
+
+  return filtered;
+}
+
+
+function renderSeasonRankingTable() {
+  const tbody = document.getElementById("season-ranking-tbody");
+  if (!tbody) return;
+
+  const data = SEASON_SUMMARY || [];
+  tbody.innerHTML = "";
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="ranking-placeholder">통계 없음</td></tr>`;
+    return;
+  }
+
+  data.forEach((p, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${idx + 1}</td>
+      <td>${p.name}</td>
+      <td>${Number(p.total_pt_score).toFixed(1)}</td>
+      <td>${Number(p.games_score).toFixed(1)}</td>
+      <td>${Number(p.tournament_score).toFixed(1)}</td>
+      <td><strong>${Number(p.season_score).toFixed(1)}</strong></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+
+
+function parseMonthlyTournamentArchive(name) {
+  const s = (name || "").toString().trim();
+
+  // "대회"는 필수. "먼슬리"는 있으면 좋고 없어도 통과시키고 싶으면 주석 처리
+  if (!s.includes("대회")) return null;
+
+  // 2025 3월 / 25 3월 / 25년 3월 / 2025년3월 / 25-3월 같은 변형도 잡기
+  const m = s.match(/(?:20)?(\d{2})\s*[-년]?\s*(\d{1,2})\s*월/);
+  if (!m) return null;
+
+  const yy2 = Number(m[1]);     // 25
+  const mm = Number(m[2]);      // 1~12
+  if (Number.isNaN(yy2) || Number.isNaN(mm)) return null;
+
+  return { yy2, mm };
+}
+
+function isSeasonMonthlyTournamentArchive(name) {
+  const p = parseMonthlyTournamentArchive(name);
+  if (!p) return false;
+  if (p.yy2 !== SEASON_YEAR2) return false;
+  return p.mm >= SEASON_FROM && p.mm <= SEASON_TO;
+}
+
+
+
+
+async function loadSeasonTournamentStatsFromArchives() {
+  // 캐시 있으면 재사용
+  if (SEASON_TOURNAMENT_STATS) return SEASON_TOURNAMENT_STATS;
+
+  let archives = [];
+  try {
+    archives = await fetchJSON("/api/archives");
+  } catch (e) {
+    console.warn("archives load failed:", e);
+    SEASON_TOURNAMENT_STATS = {};
+    return SEASON_TOURNAMENT_STATS;
+  }
+
+  const target = (archives || []).filter(a =>
+    isSeasonMonthlyTournamentArchive(a?.name)
+  );
+
+  // name -> { ptSum, joinedArchives:Set }
+  const map = new Map();
+
+  for (const a of target) {
+    let games = [];
+    try {
+      games = await fetchJSON(`/api/archives/${a.id}/games`);
+    } catch (e) {
+      console.warn("archive games load failed:", a?.id, e);
+      continue;
+    }
+
+    const appeared = new Set(); // 이 아카이브에 등장한 플레이어들
+
+    (games || []).forEach((g) => {
+      const scores = [
+        Number(g.player1_score),
+        Number(g.player2_score),
+        Number(g.player3_score),
+        Number(g.player4_score),
+      ];
+
+      const names = [
+        g.player1_name,
+        g.player2_name,
+        g.player3_name,
+        g.player4_name,
+      ].map(n => (n || "").trim());
+
+      const pts = calcPts(scores);
+
+      for (let i = 0; i < 4; i++) {
+        const n = names[i];
+        if (!n) continue;
+
+        appeared.add(n);
+
+        if (!map.has(n)) map.set(n, { ptSum: 0, joined: new Set() });
+        const st = map.get(n);
+
+        // ✅ “대회들의 총pt를 더한다 음수는 제외
+        st.ptSum += Math.max(pts[i],0);
+      }
+    });
+
+    // ✅ 참가횟수: "등장한 아카이브 개수"
+    appeared.forEach((n) => {
+      if (!map.has(n)) map.set(n, { ptSum: 0, joined: new Set() });
+      map.get(n).joined.add(a.id);
+    });
+  }
+
+  const out = {};
+  map.forEach((st, name) => {
+    out[name] = {
+      joinCount: st.joined.size,
+      ptSum: st.ptSum,
+    };
+  });
+
+  SEASON_TOURNAMENT_STATS = out;
+  return out;
+}
+
+function calcTournamentConvertedScore(joinCount, tourPtSum) {
+  const joinPart = Math.min(joinCount || 0, 3) * 50;
+
+  // ✅ "총pt 합" 기반 + 음수는 0으로 컷(보상만 주는 구조)
+  const base = Math.max(Number(tourPtSum || 0), 0);
+
+  const ptPart = 150 * (1 - Math.pow(0.995, base));
+  return joinPart + ptPart;
 }
